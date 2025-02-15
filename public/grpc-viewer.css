@@ -1,0 +1,137 @@
+:root {
+  --border-color: #ccc;
+  --border-color-selected: #9090f0;
+  --recv-color: #d0ffd0;
+  --send-color: #d0e0ff;
+  --pre-bg: #f0f0f0;
+  --panel-min-width: 200px;
+  --padding: 10px;
+  --item-padding: 8px;
+  --font-size: 0.9em;
+  --legend-box-size: 15px;
+  --metadata-label-width: 100px;
+}
+
+body {
+  margin: 0;
+  font-family: sans-serif;
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#message-list-panel {
+  width: 40%;
+  min-width: var(--panel-min-width);
+  border-right: 1px solid var(--border-color);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+
+#resizer {
+  width: 5px;
+  cursor: col-resize;
+  background: var(--border-color);
+}
+
+#message-details {
+  flex: 1;
+  padding: var(--padding);
+  overflow-y: auto;
+}
+
+#message-details pre {
+  background: var(--pre-bg);
+  padding: var(--padding);
+  border-radius: 5px;
+  overflow-x: auto;
+}
+
+.message-row-content.selected.recv {
+  background-color: color-mix(in srgb, var(--recv-color) 50%, #fff);
+  box-shadow: inset 5px 0 0 var(--border-color-selected);
+}
+
+.message-row-content.selected.send {
+  background-color: color-mix(in srgb, var(--send-color) 50%, #fff);
+  box-shadow: inset 5px 0 0 var(--border-color-selected);
+}
+
+.message-row-content.recv {
+  background-color: var(--recv-color);
+}
+
+.message-row-content.send {
+  background-color: var(--send-color);
+}
+
+.message-row-content {
+  display: grid;
+  grid-template-columns: 2em 8em auto;
+  padding: var(--item-padding);
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#message-list-panel input[type="text"] {
+  margin: var(--padding);
+  padding: 5px;
+  width: calc(100% - 2 * var(--padding) - 10px);
+}
+
+#message-list-panel button {
+  margin: var(--padding);
+}
+
+#legend {
+  padding: 5px;
+  font-size: var(--font-size);
+  margin: var(--padding);
+}
+
+.legend-row {
+  display: flex;
+  align-items: center;
+  margin-top: 5px;
+}
+
+.legend-color-box {
+  display: inline-block;
+  width: var(--legend-box-size);
+  height: var(--legend-box-size);
+  margin-right: 5px;
+}
+
+.legend-receive {
+  background-color: var(--recv-color);
+}
+
+.legend-send {
+  background-color: var(--send-color);
+}
+
+.message-details-metadata {
+  display: flex;
+  flex-direction: column;
+}
+
+.message-details-row {
+  display: flex;
+  margin-bottom: 5px;
+}
+
+.message-details-label {
+  font-weight: bold;
+  margin-right: 5px;
+  width: var(--metadata-label-width);
+  text-align: right;
+}
+
+.message-details-value pre {
+  white-space: pre-wrap;
+}

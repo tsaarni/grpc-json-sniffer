@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="stylesheet" href="grpc-viewer.css" />
+        <script src="websocket-client.js" defer></script>
+        <script src="grpc-viewer.js" defer></script>
+        <title>gRPC Viewer</title>
+    </head>
+
+    <body>
+
+        <!-- Message List panel on the left -->
+        <div id="message-list-panel">
+            <div>
+                <input id="message-list-filter-input" type="text" placeholder="Filter by method or type name" />
+            </div>
+
+            <button id="message-list-clear-button">Clear Messages</button>
+            <div id="legend">
+                <strong>Legend</strong>
+                <div class="legend-row">
+                    <span class="legend-color-box legend-receive"></span>
+                    <span>Receive</span>
+                </div>
+                <div class="legend-row">
+                    <span class="legend-color-box legend-send"></span>
+                    <span>Send</span>
+                </div>
+            </div>
+
+            <!-- Container for the messages list -->
+            <div id="messages-list-container"></div>
+
+        </div>
+
+        <!-- Resizer between the two panels -->
+        <div id="resizer"></div>
+
+        <!-- Message Details panel on the right -->
+        <div id="message-details">
+            <h2>Message Details</h2>
+            <div id="details-content">Select a message to view details</div>
+        </div>
+
+
+        <!-- Templates -->
+
+        <!-- Message list row template -->
+        <template id="message-list-template">
+            <div class="message-row-content">
+                <span class="message-row-number"></span>
+                <span class="message-row-timestamp"></span>
+                <span class="message-row-methodtype"></span>
+            </div>
+        </template>
+
+        <!-- Message details template -->
+        <template id="message-details-template">
+            <div class="message-details-content">
+                <div class="message-details-metadata">
+                    <div class="message-details-row">
+                        <span class="message-details-label">Message id:</span>
+                        <span id="message-details-id-value"></span>
+                    </div>
+                    <div class="message-details-row">
+                        <span class="message-details-label">Timestamp:</span>
+                        <span id="message-details-timestamp-value"></span>
+                    </div>
+                    <div class="message-details-row">
+                        <span class="message-details-label">Method:</span>
+                        <span id="message-details-method-value"></span>
+                    </div>
+                    <div class="message-details-row">
+                        <span class="message-details-label">Type:</span>
+                        <span id="message-details-type-value"></span>
+                    </div>
+                    <div class="message-details-row">
+                        <span class="message-details-label">Direction:</span>
+                        <span id="message-details-direction-value"></span>
+                    </div>
+                </div>
+                <div>
+                    <pre id="message-details-payload-value"></pre>
+                </div>
+            </div>
+        </template>
+
+    </body>
+
+</html>

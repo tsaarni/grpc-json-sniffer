@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+option go_package = "github.com/tsaarni/grpc-capture-interceptor/example/demo";
+
+package demo;
+
+// The demo service definition.
+service Demo {
+  // Unary call that returns a greeting for the user.
+  rpc Hello (HelloRequest) returns (HelloReply);
+
+  // Streams a countdown from the given start value.
+  rpc Countdown (CountdownRequest) returns (stream CountdownReply);
+}
+
+// The request message containing the user's name.
+message HelloRequest {
+  string name = 1;
+}
+
+// The response message containing the greetings.
+message HelloReply {
+  string message = 1;
+}
+
+// The request message for countdown
+message CountdownRequest {
+  int32 start = 1;
+}
+
+// The response message for countdown
+message CountdownReply {
+  int32 count = 1;
+}
