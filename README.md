@@ -1,42 +1,51 @@
-# gRPC JSON Sniffer
+# gRPC JSON Sniffer for Go
 
-gRPC JSON Sniffer is a tool for capturing and visualizing gRPC messages in real-time.
-It intercepts gRPC calls using `grpc.UnaryServerInterceptor` and `grpc.UnaryClientInterceptor`, logs the calls in JSON format file, and provides a web-based interface to view and analyze the captured messages.
+gRPC JSON Sniffer is a Go module designed to capture and visualize gRPC messages in real-time.
+It intercepts gRPC calls using both `grpc.StreamServerInterceptor` and `grpc.UnaryServerInterceptor` ([link](https://github.com/grpc/grpc-go/blob/master/examples/features/interceptor/README.md)), logs the calls to a JSON file, and provides a web-based interface for viewing and analyzing the captured messages.
+
+![gRPC JSON Sniffer Web UI](example/webui-screenshot.png)
 
 ## Usage
 
-To use the gRPC JSON Sniffer, you need to integrate it into your gRPC server.
-Below is an example of how to set it up.
+### Integration into a gRPC Server
+
+To integrate the JSON Sniffer into your gRPC server, import the package and create a new JSON interceptor.
+Then add the interceptor to your server options:
 
 ```go
 import sniffer "github.com/tsaarni/grpc-json-sniffer"
 
 // Create a new JSON interceptor
 func setupGrpcServer() {
-    ...
-	interceptor, err := sniffer.NewGrpcJsonInterceptor(	)
+    // Create the interceptor. By default, logging is disabled.
+    interceptor, err := sniffer.NewGrpcJsonInterceptor()
+    if err != nil {
+        // Handle error.
+    }
 
-	opts := []grpc.ServerOption{
-		grpc.StreamInterceptor(interceptor.StreamServerInterceptor()),
-		grpc.UnaryInterceptor(interceptor.UnaryServerInterceptor()),
-	}
+    // Add interceptors to the gRPC server options.
+    opts := []grpc.ServerOption{
+        grpc.StreamInterceptor(interceptor.StreamServerInterceptor()),
+        grpc.UnaryInterceptor(interceptor.UnaryServerInterceptor()),
 
-	s := grpc.NewServer(opts...)
-    ...
+        // Or use github.com/grpc-ecosystem/go-grpc-middleware to chain existing interceptors:
+        // grpc.ChainStreamInterceptor(interceptor.StreamServerInterceptor(), <other>)
+        // grpc.ChainUnaryInterceptor(interceptor.UnaryServerInterceptor(), <other>)
+    }
+
+    // Create new gRPC server with the options.
+    s := grpc.NewServer(opts...)
+    // ... further setup.
 }
 ```
 
 See [`example/server/server.go`](example/server/server.go) for full example.
 
 By default the interceptor does not capture any messages.
-Its functionality is enabled by following variables:
+Its functionality is enabled by following environment variables:
 
-- `GRPC_JSON_SNIFFER_FILE` - Path to the JSON file where the intercepted messages will be logged.
-For example `/tmp/grpc_capture.json`.
-By default, the interceptor does not log any messages. Setting this variable enables the interceptor.
-- `GRPC_JSON_SNIFFER_ADDR` - Address for the web server that serves the captured messages.
-For example `localhost:8080`.
-By default, the web server is not started.
+- `GRPC_JSON_SNIFFER_FILE` - Setting this variable enables the interceptor to log messages to a JSON file, for example `/tmp/grpc_capture.json`.
+- `GRPC_JSON_SNIFFER_ADDR` - Setting this variable enables the web server to serve the web viewer and captured messages, for example `localhost:8080`.
 
 The interceptor can be configured programmatically using options:
 
