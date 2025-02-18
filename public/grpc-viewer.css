@@ -19,6 +19,10 @@ body {
   background-color: var(--background-color);
 }
 
+a {
+  color: black;
+}
+
 #message-list-panel {
   width: 40%;
   min-width: var(--message-list-min-width);

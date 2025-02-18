@@ -43,16 +43,19 @@ class GrpcViewer {
     matchesFilter(msg, filter) {
         if (!filter) return true;
         if (filter.includes(":")) {
-            const parts = filter.split(":");
-            if (parts.length >= 2) {
-                const key = parts[0].trim().toLowerCase();
-                const value = parts[1].trim().toLowerCase();
-                if (key in msg) {
-                    return String(msg[key]).toLowerCase() == value;
-                }
+            const colonIndex = filter.indexOf(":");
+            const key = filter.substring(0, colonIndex).trim().toLowerCase();
+            const value = filter.substring(colonIndex + 1).trim().toLowerCase();
+            if (key in msg) {
+                return String(msg[key]).toLowerCase() == value;
             }
         }
-        return Object.values(msg).some(val => String(val).toLowerCase().includes(filter));
+        return msg.method.toLowerCase().includes(filter) || msg.message.toLowerCase().includes(filter);
+    }
+
+    getFilteredMessages() {
+        const filterQuery = this.filterInput.value.trim().toLowerCase();
+        return this.messages.filter(msg => this.matchesFilter(msg, filterQuery));
     }
 
     renderMessageList() {
@@ -97,25 +100,35 @@ class GrpcViewer {
 
         details.querySelector('#message-details-message-id-value').textContent = msg.message_id;
         details.querySelector('#message-details-timestamp-value').textContent = this.formatTimestamp(msg.time);
-        details.querySelector('#message-details-method-value').textContent = msg.method;
-        details.querySelector('#message-details-message-value').textContent = msg.message;
-        details.querySelector('#message-details-direction-value').textContent = msg.direction;
-        details.querySelector('#message-details-peer-address-value').textContent = msg.peer_address;
-        details.querySelector('#message-details-error-value').textContent = msg.error;
+        details.querySelector('#message-details-method-value').appendChild(this.createFilterLink("method", msg.method));
+        details.querySelector('#message-details-message-value').appendChild(this.createFilterLink("message", msg.message));
+        details.querySelector('#message-details-direction-value').appendChild(this.createFilterLink("direction", msg.direction));
+        details.querySelector('#message-details-peer-address-value').appendChild(this.createFilterLink("peer_address", msg.peer_address));
         details.querySelector('#message-details-payload-value').textContent = JSON.stringify(msg.content, null, 2);
 
         // Optional fields.
         if ("stream_id" in msg) {
             details.querySelector('#message-details-stream-id').classList.remove("hidden");
-            details.querySelector('#message-details-stream-id-value').textContent = msg.stream_id;
+            details.querySelector('#message-details-stream-id-value').appendChild(this.createFilterLink('stream_id', msg.stream_id));
         }
         if ("error" in msg) {
             details.querySelector('#message-details-error').classList.remove("hidden");
-            details.querySelector('#message-details-error-value').textContent = msg.error;
+            details.querySelector('#message-details-error-value').appendChild(this.createFilterLink('error', msg.error));
         }
 
         this.detailsContent.innerHTML = '';
         this.detailsContent.appendChild(details);
+    }
+
+    createFilterLink(key, value) {
+        const link = document.createElement('a');
+        link.href = "#";
+        link.textContent = value;
+        link.addEventListener("click", (event) => {
+            event.preventDefault();
+            this.applyFilter(key, value);
+        });
+        return link;
     }
 
     clearMessages() {
@@ -132,6 +145,13 @@ class GrpcViewer {
 
         this.clearButton.addEventListener("click", () => {
             this.clearMessages();
+        });
+
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+                event.preventDefault();
+                this.handleArrowKey(event);
+            }
         });
     }
 
@@ -164,6 +184,32 @@ class GrpcViewer {
         document.addEventListener("mouseup", (e) => {
             isResizing = false;
         });
+    }
+
+    handleArrowKey(event) {
+        const filteredMessages = this.getFilteredMessages();
+        if (filteredMessages.length === 0) return;
+
+        let selectedIndex = filteredMessages.findIndex(msg => msg.message_id === this.selectedMessageId);
+
+        if (event.key === "ArrowUp") {
+            selectedIndex--;
+            if (selectedIndex < 0) selectedIndex = 0;
+        } else if (event.key === "ArrowDown") {
+            selectedIndex++;
+            if (selectedIndex >= filteredMessages.length) selectedIndex = filteredMessages.length - 1;
+        }
+
+        this.selectedMessageId = filteredMessages[selectedIndex].message_id;
+        this.renderMessageList();
+        const selectedMessage = this.messages.find(msg => msg.message_id === this.selectedMessageId);
+        this.renderMessageDetails(selectedMessage);
+    }
+
+    applyFilter(key, value) {
+        const filterString = `${key}: ${value}`;
+        this.filterInput.value = filterString;
+        this.renderMessageList();
     }
 }
 
