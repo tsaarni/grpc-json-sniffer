@@ -33,24 +33,44 @@ class GrpcViewer {
         });
     }
 
+    stripNamespace(method) {
+        const parts1 = method.split("/");
+        const lastPart = parts1[parts1.length - 1];
+        const parts2 = lastPart.split(".");
+        return parts2[parts2.length - 1];
+    }
+
+    matchesFilter(msg, filter) {
+        if (!filter) return true;
+        if (filter.includes(":")) {
+            const parts = filter.split(":");
+            if (parts.length >= 2) {
+                const key = parts[0].trim().toLowerCase();
+                const value = parts[1].trim().toLowerCase();
+                if (key in msg) {
+                    return String(msg[key]).toLowerCase() == value;
+                }
+            }
+        }
+        return Object.values(msg).some(val => String(val).toLowerCase().includes(filter));
+    }
+
     renderMessageList() {
         const list = this.messagesListContainer;
-        const filterValue = this.filterInput.value.toLowerCase();
-
+        const filterQuery = this.filterInput.value.trim().toLowerCase();
         list.innerHTML = "";
+
         this.messages.forEach((msg, index) => {
-            if (!msg.method.toLowerCase().includes(filterValue) && !msg.type.toLowerCase().includes(filterValue)) {
+            if (!this.matchesFilter(msg, filterQuery)) {
                 return;
             }
 
             const item = this.messageListTemplate.cloneNode(true);
-            const numberSpan = item.querySelector('.message-row-number');
-            const timestampSpan = item.querySelector('.message-row-timestamp');
-            const methodTypeSpan = item.querySelector('.message-row-methodtype');
 
-            numberSpan.textContent = msg.id;
-            timestampSpan.textContent = this.formatTimestamp(msg.time);
-            methodTypeSpan.textContent = `${msg.method} (${msg.type})`;
+            item.querySelector('.message-row-message-id').textContent = msg.message_id;
+            item.querySelector('.message-row-timestamp').textContent = this.formatTimestamp(msg.time);
+            item.querySelector('.message-row-method-and-message').textContent = `${this.stripNamespace(msg.method)} (${this.stripNamespace(msg.message)})`;
+
             if (msg.direction === "recv") {
                 item.classList.add("recv");
             } else if (msg.direction === "send") {
@@ -58,7 +78,7 @@ class GrpcViewer {
             }
 
             item.addEventListener("click", () => {
-                this.selectedMessageId = msg.id; // Update selected message ID
+                this.selectedMessageId = msg.message_id;
                 this.messagesListContainer.querySelectorAll(".message-row-content").forEach((el) => el.classList.remove("selected"));
                 item.classList.add("selected");
                 this.renderMessageDetails(msg);
@@ -66,7 +86,7 @@ class GrpcViewer {
 
             list.appendChild(item);
 
-            if (msg.id === this.selectedMessageId) {
+            if (msg.message_id === this.selectedMessageId) {
                 item.classList.add("selected");
             }
         });
@@ -75,12 +95,24 @@ class GrpcViewer {
     renderMessageDetails(msg) {
         const details = this.messageDetailsTemplate.cloneNode(true);
 
-        details.querySelector('#message-details-id-value').textContent = msg.id;
+        details.querySelector('#message-details-message-id-value').textContent = msg.message_id;
         details.querySelector('#message-details-timestamp-value').textContent = this.formatTimestamp(msg.time);
         details.querySelector('#message-details-method-value').textContent = msg.method;
-        details.querySelector('#message-details-type-value').textContent = msg.type;
+        details.querySelector('#message-details-message-value').textContent = msg.message;
         details.querySelector('#message-details-direction-value').textContent = msg.direction;
-        details.querySelector('#message-details-payload-value').textContent = JSON.stringify(msg.message, null, 2);
+        details.querySelector('#message-details-peer-address-value').textContent = msg.peer_address;
+        details.querySelector('#message-details-error-value').textContent = msg.error;
+        details.querySelector('#message-details-payload-value').textContent = JSON.stringify(msg.content, null, 2);
+
+        // Optional fields.
+        if ("stream_id" in msg) {
+            details.querySelector('#message-details-stream-id').classList.remove("hidden");
+            details.querySelector('#message-details-stream-id-value').textContent = msg.stream_id;
+        }
+        if ("error" in msg) {
+            details.querySelector('#message-details-error').classList.remove("hidden");
+            details.querySelector('#message-details-error-value').textContent = msg.error;
+        }
 
         this.detailsContent.innerHTML = '';
         this.detailsContent.appendChild(details);
@@ -105,7 +137,7 @@ class GrpcViewer {
 
     initializeWebSocket() {
         this.socketClient = new WebSocketClient("ws://localhost:8080/messages", (msg) => {
-            if (msg.id == 1) {
+            if (msg.message_id == 1) {
                 this.messages = [msg]
             } else {
                 this.messages.push(msg);

@@ -19,7 +19,8 @@ import (
 type GrpcJsonInterceptor struct {
 	output    *os.File
 	mutex     sync.Mutex
-	messageId int
+	messageId int // Unique identifier for each message.
+	streamId  int // Unique identifier for each stream.
 	marshaler protojson.MarshalOptions
 	viewer    *GrpcWebViewer
 }
@@ -28,6 +29,7 @@ type serverStreamWrapper struct {
 	grpc.ServerStream
 	info        *grpc.StreamServerInfo
 	interceptor *GrpcJsonInterceptor
+	streamId    int
 }
 
 type grpcJsonInterceptorOptions struct {
@@ -36,13 +38,15 @@ type grpcJsonInterceptorOptions struct {
 }
 
 type capturedMessage struct {
-	Id         int             `json:"id"`
+	MessageId  int             `json:"message_id"`
+	StreamId   *int            `json:"stream_id,omitempty"`
 	Direction  direction       `json:"direction"`
 	Time       string          `json:"time"`
 	FullMethod string          `json:"method"`
-	Type       string          `json:"type"`
+	Message    string          `json:"message"`
 	PeerAddr   string          `json:"peer_address"`
-	Message    json.RawMessage `json:"message"`
+	Error      string          `json:"error,omitempty"`
+	Content    json.RawMessage `json:"content"`
 }
 
 type direction string
@@ -86,6 +90,7 @@ func NewGrpcJsonInterceptor(options ...func(*grpcJsonInterceptorOptions)) (*Grpc
 	return &GrpcJsonInterceptor{
 		output:    f,
 		messageId: 1,
+		streamId:  1,
 		marshaler: protojson.MarshalOptions{
 			EmitUnpopulated: true,
 		},
@@ -107,10 +112,15 @@ func WithAddr(addr string) func(*grpcJsonInterceptorOptions) {
 	}
 }
 
-func (i *GrpcJsonInterceptor) writeMessage(ctx context.Context, direction direction, fullMethod string, msg proto.Message) error {
+func (i *GrpcJsonInterceptor) writeMessage(ctx context.Context, direction direction, fullMethod string, payload any, err error, streamId *int) {
+	msg, ok := payload.(proto.Message)
+	if !ok {
+		return
+	}
+
 	b, err := i.marshaler.Marshal(msg)
 	if err != nil {
-		return err
+		return
 	}
 	var peerAddr string
 	p, ok := peer.FromContext(ctx)
@@ -127,29 +137,36 @@ func (i *GrpcJsonInterceptor) writeMessage(ctx context.Context, direction direct
 	i.mutex.Lock()
 	defer i.mutex.Unlock()
 
+	errorMessage := ""
+	if err != nil {
+		errorMessage = fmt.Sprintf("%v", err)
+	}
+
 	m := capturedMessage{
-		Id:         i.messageId,
+		MessageId:  i.messageId,
 		Direction:  direction,
 		Time:       time.Now().Format(time.RFC3339Nano),
 		FullMethod: fullMethod,
-		Type:       string(msg.ProtoReflect().Descriptor().FullName()),
+		Message:    string(msg.ProtoReflect().Descriptor().FullName()),
+		StreamId:   streamId,
 		PeerAddr:   peerAddr,
-		Message:    json.RawMessage(b),
+		Error:      errorMessage,
+		Content:    json.RawMessage(b),
 	}
 
 	var data []byte
 	if data, err = json.Marshal(m); err != nil {
-		return err
+		return
 	}
 
 	if _, err := i.output.Write(data); err != nil {
-		return err
+		return
 	}
 	_, _ = i.output.WriteString("\n")
 
 	i.messageId++
 
-	return nil
+	return
 }
 
 // UnaryServerInterceptor returns a gRPC unary server interceptor that logs the request and response messages as JSON.
@@ -162,28 +179,10 @@ func (i *GrpcJsonInterceptor) UnaryServerInterceptor() func(ctx context.Context,
 	}
 
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-		msg, ok := req.(proto.Message)
-		if !ok {
-			return nil, fmt.Errorf("request does not implement proto.Message")
-		}
-		if err := i.writeMessage(ctx, directionReceive, info.FullMethod, msg); err != nil {
-			return nil, err
-		}
-
+		i.writeMessage(ctx, directionReceive, info.FullMethod, req, nil, nil)
 		resp, err := handler(ctx, req)
-		if err != nil {
-			return nil, err
-		}
-
-		msg, ok = resp.(proto.Message)
-		if !ok {
-			return nil, fmt.Errorf("response does not implement proto.Message")
-		}
-		if err := i.writeMessage(ctx, directionSend, info.FullMethod, msg); err != nil {
-			return nil, err
-		}
-
-		return resp, nil
+		i.writeMessage(ctx, directionSend, info.FullMethod, req, err, nil)
+		return resp, err
 	}
 }
 
@@ -197,33 +196,28 @@ func (i *GrpcJsonInterceptor) StreamServerInterceptor() func(srv interface{}, st
 	}
 
 	return func(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-		return handler(srv, &serverStreamWrapper{
+		i.mutex.Lock()
+		wrapper := &serverStreamWrapper{
 			ServerStream: stream,
 			info:         info,
 			interceptor:  i,
-		})
+			streamId:     i.streamId,
+		}
+		i.streamId++
+		i.mutex.Unlock()
+
+		return handler(srv, wrapper)
 	}
 }
 
 func (ssw *serverStreamWrapper) RecvMsg(m interface{}) error {
-	msg, ok := m.(proto.Message)
-	if !ok {
-		return fmt.Errorf("message does not implement proto.Message")
-	}
-	if err := ssw.interceptor.writeMessage(ssw.Context(), directionReceive, ssw.info.FullMethod, msg); err != nil {
-		return err
-	}
-
-	return ssw.ServerStream.RecvMsg(m)
+	err := ssw.ServerStream.RecvMsg(m)
+	ssw.interceptor.writeMessage(ssw.Context(), directionReceive, ssw.info.FullMethod, m, err, &ssw.streamId)
+	return err
 }
 
 func (ssw *serverStreamWrapper) SendMsg(m interface{}) error {
-	msg, ok := m.(proto.Message)
-	if !ok {
-		return fmt.Errorf("message does not implement proto.Message")
-	}
-	if err := ssw.interceptor.writeMessage(ssw.Context(), directionSend, ssw.info.FullMethod, msg); err != nil {
-		return err
-	}
-	return ssw.ServerStream.SendMsg(m)
+	err := ssw.ServerStream.SendMsg(m)
+	ssw.interceptor.writeMessage(ssw.Context(), directionSend, ssw.info.FullMethod, m, err, &ssw.streamId)
+	return err
 }

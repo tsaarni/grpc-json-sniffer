@@ -1,15 +1,13 @@
 :root {
-  --border-color: #ccc;
-  --border-color-selected: #9090f0;
-  --recv-color: #d0ffd0;
+  --background-color: #f8f8f8;
+  --border-color: #c0c0c0;
+  --button-color: #40a040;
+  --recv-color: #c0ffc0;
   --send-color: #d0e0ff;
-  --pre-bg: #f0f0f0;
-  --panel-min-width: 200px;
+  --selected-highlight-percent: 80%;
+  --message-content-background: #f0f0f0;
+  --message-list-min-width: 200px;
   --padding: 10px;
-  --item-padding: 8px;
-  --font-size: 0.9em;
-  --legend-box-size: 15px;
-  --metadata-label-width: 100px;
 }
 
 body {
@@ -18,11 +16,12 @@ body {
   display: flex;
   height: 100vh;
   overflow: hidden;
+  background-color: var(--background-color);
 }
 
 #message-list-panel {
   width: 40%;
-  min-width: var(--panel-min-width);
+  min-width: var(--message-list-min-width);
   border-right: 1px solid var(--border-color);
   overflow-y: auto;
   display: flex;
@@ -43,20 +42,40 @@ body {
 }
 
 #message-details pre {
-  background: var(--pre-bg);
+  background: var(--message-content-background);
   padding: var(--padding);
-  border-radius: 5px;
   overflow-x: auto;
 }
 
-.message-row-content.selected.recv {
-  background-color: color-mix(in srgb, var(--recv-color) 50%, #fff);
-  box-shadow: inset 5px 0 0 var(--border-color-selected);
+#messages-list-container {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow-y: auto;
+  flex-grow: 1;
+  min-height: 100%;
+  align-content: start;
 }
 
-.message-row-content.selected.send {
-  background-color: color-mix(in srgb, var(--send-color) 50%, #fff);
-  box-shadow: inset 5px 0 0 var(--border-color-selected);
+.message-row-content {
+  display: contents;
+}
+
+.message-row-message-id,
+.message-row-timestamp,
+.message-row-method-and-message {
+  background-color: inherit;
+  border-bottom: 1px solid #eee;
+  padding: 5px 10px;
+}
+
+.message-row-content.recv.selected {
+  background-color: color-mix(in srgb, var(--recv-color) var(--selected-highlight-percent), #000);
+}
+
+.message-row-content.send.selected {
+  background-color: color-mix(in srgb, var(--send-color) var(--selected-highlight-percent), #000);
 }
 
 .message-row-content.recv {
@@ -67,21 +86,10 @@ body {
   background-color: var(--send-color);
 }
 
-.message-row-content {
-  display: grid;
-  grid-template-columns: 2em 8em auto;
-  padding: var(--item-padding);
-  border-bottom: 1px solid #eee;
-  cursor: pointer;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 #message-list-panel input[type="text"] {
   margin: var(--padding);
   padding: 5px;
-  width: calc(100% - 2 * var(--padding) - 10px);
+  width: calc(100% - 2 * var(--padding) - 15px);
 }
 
 #message-list-panel button {
@@ -89,22 +97,21 @@ body {
 }
 
 #legend {
-  padding: 5px;
-  font-size: var(--font-size);
+  padding-left: 5px;
+  padding-bottom: 10px;
+  font-size: 0.9em;
   margin: var(--padding);
 }
 
-.legend-row {
-  display: flex;
-  align-items: center;
-  margin-top: 5px;
+.legend-header {
+  margin-right: 5px;
 }
 
 .legend-color-box {
   display: inline-block;
-  width: var(--legend-box-size);
-  height: var(--legend-box-size);
-  margin-right: 5px;
+  width: 15px;
+  height: 15px;
+  margin: 5px 0px -2px 0;
 }
 
 .legend-receive {
@@ -116,22 +123,33 @@ body {
 }
 
 .message-details-metadata {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: auto 1fr;
 }
 
 .message-details-row {
-  display: flex;
+  display: contents;
   margin-bottom: 5px;
 }
 
 .message-details-label {
   font-weight: bold;
-  margin-right: 5px;
-  width: var(--metadata-label-width);
+  margin-right: 15px;
   text-align: right;
 }
 
 .message-details-value pre {
   white-space: pre-wrap;
+}
+
+.hidden {
+  display: none;
+}
+
+#message-list-clear-button {
+  background-color: var(--button-color);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
 }

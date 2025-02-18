@@ -20,15 +20,11 @@
 
             <button id="message-list-clear-button">Clear Messages</button>
             <div id="legend">
-                <strong>Legend</strong>
-                <div class="legend-row">
-                    <span class="legend-color-box legend-receive"></span>
-                    <span>Receive</span>
-                </div>
-                <div class="legend-row">
-                    <span class="legend-color-box legend-send"></span>
-                    <span>Send</span>
-                </div>
+                <strong class="legend-header">Legend:</strong>
+                <span class="legend-color-box legend-receive"></span>
+                <span>Receive</span>
+                <span class="legend-color-box legend-send"></span>
+                <span>Send</span>
             </div>
 
             <!-- Container for the messages list -->
@@ -41,7 +37,7 @@
 
         <!-- Message Details panel on the right -->
         <div id="message-details">
-            <h2>Message Details</h2>
+            <h3>Message Details</h3>
             <div id="details-content">Select a message to view details</div>
         </div>
 
@@ -51,9 +47,9 @@
         <!-- Message list row template -->
         <template id="message-list-template">
             <div class="message-row-content">
-                <span class="message-row-number"></span>
+                <span class="message-row-message-id"></span>
                 <span class="message-row-timestamp"></span>
-                <span class="message-row-methodtype"></span>
+                <span class="message-row-method-and-message"></span>
             </div>
         </template>
 
@@ -62,24 +58,36 @@
             <div class="message-details-content">
                 <div class="message-details-metadata">
                     <div class="message-details-row">
-                        <span class="message-details-label">Message id:</span>
-                        <span id="message-details-id-value"></span>
+                        <span class="message-details-label">message_id:</span>
+                        <span id="message-details-message-id-value"></span>
+                    </div>
+                    <div id="message-details-stream-id" class="message-details-row hidden">
+                        <span class="message-details-label">stream_id:</span>
+                        <span id="message-details-stream-id-value"></span>
                     </div>
                     <div class="message-details-row">
-                        <span class="message-details-label">Timestamp:</span>
+                        <span class="message-details-label">time:</span>
                         <span id="message-details-timestamp-value"></span>
                     </div>
                     <div class="message-details-row">
-                        <span class="message-details-label">Method:</span>
+                        <span class="message-details-label">method:</span>
                         <span id="message-details-method-value"></span>
                     </div>
                     <div class="message-details-row">
-                        <span class="message-details-label">Type:</span>
-                        <span id="message-details-type-value"></span>
+                        <span class="message-details-label">message:</span>
+                        <span id="message-details-message-value"></span>
                     </div>
                     <div class="message-details-row">
-                        <span class="message-details-label">Direction:</span>
+                        <span class="message-details-label">direction:</span>
                         <span id="message-details-direction-value"></span>
+                    </div>
+                    <div class="message-details-row">
+                        <span class="message-details-label">peer_address:</span>
+                        <span id="message-details-peer-address-value"></span>
+                    </div>
+                    <div id="message-details-error" class="message-details-row hidden">
+                        <span class="message-details-label">error:</span>
+                        <span id="message-details-error-value"></span>
                     </div>
                 </div>
                 <div>
