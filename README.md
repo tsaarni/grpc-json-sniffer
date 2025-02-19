@@ -1,7 +1,10 @@
 # gRPC JSON Sniffer for Go
 
 gRPC JSON Sniffer is a Go module designed to capture and visualize gRPC messages in real-time.
-It intercepts gRPC calls using both `grpc.StreamServerInterceptor` and `grpc.UnaryServerInterceptor` ([link](https://github.com/grpc/grpc-go/blob/master/examples/features/interceptor/README.md)), logs the calls to a JSON file, and provides a web-based interface for viewing and analyzing the captured messages.
+It intercepts gRPC calls using `grpc.StreamServerInterceptor` and `grpc.UnaryServerInterceptor` or `grpc.StreamClientInterceptor` and `grpc.UnaryClientInterceptor`, logs the calls to a JSON file, and provides a web-based interface for viewing and analyzing the captured messages.
+
+For more information about interceptors, see [grpc-go documentation](https://github.com/grpc/grpc-go/blob/master/examples/features/interceptor/README.md).
+
 
 ![gRPC JSON Sniffer Web UI](example/webui-screenshot.png)
 
@@ -15,7 +18,6 @@ Then add the interceptor to your server options:
 ```go
 import sniffer "github.com/tsaarni/grpc-json-sniffer"
 
-// Create a new JSON interceptor
 func setupGrpcServer() {
     // Create the interceptor. By default, logging is disabled.
     interceptor, err := sniffer.NewGrpcJsonInterceptor()
@@ -41,13 +43,37 @@ func setupGrpcServer() {
 
 See [`example/server/server.go`](example/server/server.go) for full example.
 
+
+### Integration into a gRPC Client
+
+Similar to the server, the JSON Sniffer can be integrated into a gRPC client.
+
+```go
+import sniffer "github.com/tsaarni/grpc-json-sniffer"
+
+func setupGrpcClient() {
+	interceptor, err := sniffer.NewGrpcJsonInterceptor()
+	// ...
+	conn, err := grpc.NewClient(grpcServerAddress,
+		// ...
+		grpc.WithUnaryInterceptor(interceptor.UnaryClientInterceptor()),
+		grpc.WithStreamInterceptor(interceptor.StreamClientInterceptor()),
+	)
+	// ...
+}
+```
+
+See [`example/client/client.go`](example/client/client.go) for full example.
+
+### Configuration
+
 By default the interceptor does not capture any messages.
 Its functionality is enabled by following environment variables:
 
 - `GRPC_JSON_SNIFFER_FILE` - Setting this variable enables the interceptor to log messages to a JSON file, for example `/tmp/grpc_capture.json`.
 - `GRPC_JSON_SNIFFER_ADDR` - Setting this variable enables the web server to serve the web viewer and captured messages, for example `localhost:8080`.
 
-The interceptor can be configured programmatically using options:
+Alternatively, the interceptor can be configured programmatically using options:
 
 ```go
 interceptor, err := sniffer.NewGrpcJsonInterceptor(
@@ -66,19 +92,22 @@ To start the gRPC server with the JSON interceptor, run:
 go run -tags live_public github.com/tsaarni/grpc-json-sniffer/example/server
 ```
 
+Access the captured messages by visiting [http://localhost:8080](http://localhost:8080).
+
 The `live_public` tag is used to enable the web server that serves static files from the `public` directory, for development purposes.
 Otherwise, the files embedded during the build process are used.
 
-Access the captured messages by visiting [http://localhost:8080](http://localhost:8080).
 
-Send a greeting request:
-
-```bash
-go run github.com/tsaarni/grpc-json-sniffer/example/client -action greetings -param Joe
-```
-
-Send a countdown request:
+Send unary greeting request:
 
 ```bash
-go run github.com/tsaarni/grpc-json-sniffer/example/client -action countdown -param 10
+go run github.com/tsaarni/grpc-json-sniffer/example/client greetings Joe
 ```
+
+Send streaming countdown request:
+
+```bash
+go run -tags live_public github.com/tsaarni/grpc-json-sniffer/example/client countdown 6000
+```
+
+While the client is running the client message viewer can be accessed at [http://localhost:8081](http://localhost:8081).

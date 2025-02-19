@@ -112,10 +112,15 @@ func WithAddr(addr string) func(*grpcJsonInterceptorOptions) {
 	}
 }
 
-func (i *GrpcJsonInterceptor) writeMessage(ctx context.Context, direction direction, fullMethod string, payload any, err error, streamId *int) {
+func (i *GrpcJsonInterceptor) writeMessage(ctx context.Context, direction direction, fullMethod string, payload any, handlerError error, streamId *int) {
 	msg, ok := payload.(proto.Message)
 	if !ok {
 		return
+	}
+
+	handlerErrorMessage := ""
+	if handlerError != nil {
+		handlerErrorMessage = fmt.Sprintf("%v", handlerError)
 	}
 
 	b, err := i.marshaler.Marshal(msg)
@@ -137,11 +142,6 @@ func (i *GrpcJsonInterceptor) writeMessage(ctx context.Context, direction direct
 	i.mutex.Lock()
 	defer i.mutex.Unlock()
 
-	errorMessage := ""
-	if err != nil {
-		errorMessage = fmt.Sprintf("%v", err)
-	}
-
 	m := capturedMessage{
 		MessageId:  i.messageId,
 		Direction:  direction,
@@ -150,12 +150,12 @@ func (i *GrpcJsonInterceptor) writeMessage(ctx context.Context, direction direct
 		Message:    string(msg.ProtoReflect().Descriptor().FullName()),
 		StreamId:   streamId,
 		PeerAddr:   peerAddr,
-		Error:      errorMessage,
+		Error:      handlerErrorMessage,
 		Content:    json.RawMessage(b),
 	}
 
 	var data []byte
-	if data, err = json.Marshal(m); err != nil {
+	if data, handlerError = json.Marshal(m); handlerError != nil {
 		return
 	}
 
@@ -219,5 +219,72 @@ func (ssw *serverStreamWrapper) RecvMsg(m interface{}) error {
 func (ssw *serverStreamWrapper) SendMsg(m interface{}) error {
 	err := ssw.ServerStream.SendMsg(m)
 	ssw.interceptor.writeMessage(ssw.Context(), directionSend, ssw.info.FullMethod, m, err, &ssw.streamId)
+	return err
+}
+
+// UnaryClientInterceptor returns a gRPC unary client interceptor that logs the request and response messages as JSON.
+func (i *GrpcJsonInterceptor) UnaryClientInterceptor() grpc.UnaryClientInterceptor {
+	// If no output file is provided, return an interceptor that does nothing.
+	if i.output == nil {
+		return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+			return invoker(ctx, method, req, reply, cc, opts...)
+		}
+	}
+
+	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+		i.writeMessage(ctx, directionReceive, method, req, nil, nil)
+		err := invoker(ctx, method, req, reply, cc, opts...)
+		i.writeMessage(ctx, directionSend, method, reply, err, nil)
+		return err
+	}
+}
+
+// StreamClientInterceptor returns a gRPC stream client interceptor that logs the request and response messages as JSON.
+func (i *GrpcJsonInterceptor) StreamClientInterceptor() grpc.StreamClientInterceptor {
+	// If no output file is provided, return an interceptor that does nothing.
+	if i.output == nil {
+		return func(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string, streamer grpc.Streamer, opts ...grpc.CallOption) (grpc.ClientStream, error) {
+			return streamer(ctx, desc, cc, method, opts...)
+		}
+	}
+
+	return func(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string, streamer grpc.Streamer, opts ...grpc.CallOption) (grpc.ClientStream, error) {
+		i.mutex.Lock()
+		streamId := i.streamId
+		i.streamId++
+		i.mutex.Unlock()
+
+		clientStream, err := streamer(ctx, desc, cc, method, opts...)
+		if err != nil {
+			return nil, err
+		}
+
+		wrappedStream := &clientStreamWrapper{
+			ClientStream: clientStream,
+			interceptor:  i,
+			method:       method,
+			streamId:     streamId,
+		}
+
+		return wrappedStream, nil
+	}
+}
+
+type clientStreamWrapper struct {
+	grpc.ClientStream
+	interceptor *GrpcJsonInterceptor
+	method      string
+	streamId    int
+}
+
+func (csw *clientStreamWrapper) SendMsg(m interface{}) error {
+	err := csw.ClientStream.SendMsg(m)
+	csw.interceptor.writeMessage(csw.Context(), directionSend, csw.method, m, err, &csw.streamId)
+	return err
+}
+
+func (csw *clientStreamWrapper) RecvMsg(m interface{}) error {
+	err := csw.ClientStream.RecvMsg(m)
+	csw.interceptor.writeMessage(csw.Context(), directionReceive, csw.method, m, err, &csw.streamId)
 	return err
 }

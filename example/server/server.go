@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"log/slog"
 	"net"
@@ -17,6 +16,11 @@ import (
 type server struct {
 	demo.UnimplementedDemoServer
 }
+
+const (
+	grpcAddress       = "localhost:50051"
+	httpViewerAddress = "localhost:8080"
+)
 
 func peerAddr(ctx context.Context) string {
 	if p, ok := peer.FromContext(ctx); ok {
@@ -42,17 +46,14 @@ func (s *server) Countdown(req *demo.CountdownRequest, stream demo.Demo_Countdow
 }
 
 func main() {
-	address := flag.String("address", "localhost:50051", "The address to bind the server to")
-	flag.Parse()
-
-	lis, err := net.Listen("tcp", *address)
+	listener, err := net.Listen("tcp", grpcAddress)
 	if err != nil {
 		slog.Error("failed to listen", "error", err)
 		return
 	}
 
 	interceptor, err := sniffer.NewGrpcJsonInterceptor(
-		sniffer.WithFilename("grpc_capture.json"), sniffer.WithAddr("localhost:8080"))
+		sniffer.WithFilename("grpc_server_capture.json"), sniffer.WithAddr(httpViewerAddress))
 	if err != nil {
 		slog.Error("failed to create capture interceptor", "error", err)
 		return
@@ -66,9 +67,9 @@ func main() {
 	s := grpc.NewServer(opts...)
 	demo.RegisterDemoServer(s, &server{})
 
-	fmt.Printf("gRPC server is running on %s\n", *address)
-	fmt.Printf("HTTP server is running on http://localhost:8080\n")
-	if err := s.Serve(lis); err != nil {
+	fmt.Printf("gRPC server is running on %s\n", grpcAddress)
+	fmt.Printf("HTTP server is running on %s\n", httpViewerAddress)
+	if err := s.Serve(listener); err != nil {
 		slog.Error("failed to serve", "error", err)
 	}
 }

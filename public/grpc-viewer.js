@@ -23,39 +23,9 @@ class GrpcViewer {
         this.selectedMessageId = null;
     }
 
-    formatTimestamp(timeStamp) {
-        return new Date(timeStamp).toLocaleTimeString(undefined, {
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-            fractionalSecondDigits: 3,
-            hour12: false,
-        });
-    }
-
-    stripNamespace(method) {
-        const parts1 = method.split("/");
-        const lastPart = parts1[parts1.length - 1];
-        const parts2 = lastPart.split(".");
-        return parts2[parts2.length - 1];
-    }
-
-    matchesFilter(msg, filter) {
-        if (!filter) return true;
-        if (filter.includes(":")) {
-            const colonIndex = filter.indexOf(":");
-            const key = filter.substring(0, colonIndex).trim().toLowerCase();
-            const value = filter.substring(colonIndex + 1).trim().toLowerCase();
-            if (key in msg) {
-                return String(msg[key]).toLowerCase() == value;
-            }
-        }
-        return msg.method.toLowerCase().includes(filter) || msg.message.toLowerCase().includes(filter);
-    }
-
     getFilteredMessages() {
         const filterQuery = this.filterInput.value.trim().toLowerCase();
-        return this.messages.filter(msg => this.matchesFilter(msg, filterQuery));
+        return this.messages.filter(msg => matchesFilter(msg, filterQuery));
     }
 
     renderMessageList() {
@@ -64,15 +34,15 @@ class GrpcViewer {
         list.innerHTML = "";
 
         this.messages.forEach((msg, index) => {
-            if (!this.matchesFilter(msg, filterQuery)) {
+            if (!matchesFilter(msg, filterQuery)) {
                 return;
             }
 
             const item = this.messageListTemplate.cloneNode(true);
 
             item.querySelector('.message-row-message-id').textContent = msg.message_id;
-            item.querySelector('.message-row-timestamp').textContent = this.formatTimestamp(msg.time);
-            item.querySelector('.message-row-method-and-message').textContent = `${this.stripNamespace(msg.method)} (${this.stripNamespace(msg.message)})`;
+            item.querySelector('.message-row-timestamp').textContent = formatTimestamp(msg.time);
+            item.querySelector('.message-row-method-and-message').textContent = `${stripNamespace(msg.method)} (${stripNamespace(msg.message)})`;
 
             if (msg.direction === "recv") {
                 item.classList.add("recv");
@@ -99,7 +69,7 @@ class GrpcViewer {
         const details = this.messageDetailsTemplate.cloneNode(true);
 
         details.querySelector('#message-details-message-id-value').textContent = msg.message_id;
-        details.querySelector('#message-details-timestamp-value').textContent = this.formatTimestamp(msg.time);
+        details.querySelector('#message-details-timestamp-value').textContent = formatTimestamp(msg.time);
         details.querySelector('#message-details-method-value').appendChild(this.createFilterLink("method", msg.method));
         details.querySelector('#message-details-message-value').appendChild(this.createFilterLink("message", msg.message));
         details.querySelector('#message-details-direction-value').appendChild(this.createFilterLink("direction", msg.direction));
@@ -156,7 +126,9 @@ class GrpcViewer {
     }
 
     initializeWebSocket() {
-        this.socketClient = new WebSocketClient("ws://localhost:8080/messages", (msg) => {
+        const wsHost = window.location.host;
+        const wsUrl = `ws://${wsHost}/messages`;
+        this.socketClient = new WebSocketClient(wsUrl, (msg) => {
             if (msg.message_id == 1) {
                 this.messages = [msg]
             } else {
@@ -212,6 +184,38 @@ class GrpcViewer {
         this.renderMessageList();
     }
 }
+
+// Helpers.
+function formatTimestamp(timeStamp) {
+    return new Date(timeStamp).toLocaleTimeString(undefined, {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        fractionalSecondDigits: 3,
+        hour12: false,
+    });
+}
+
+function stripNamespace(method) {
+    const parts1 = method.split("/");
+    const lastPart = parts1[parts1.length - 1];
+    const parts2 = lastPart.split(".");
+    return parts2[parts2.length - 1];
+}
+
+function matchesFilter(msg, filter) {
+    if (!filter) return true;
+    if (filter.includes(":")) {
+        const colonIndex = filter.indexOf(":");
+        const key = filter.substring(0, colonIndex).trim().toLowerCase();
+        const value = filter.substring(colonIndex + 1).trim().toLowerCase();
+        if (key in msg) {
+            return String(msg[key]).toLowerCase() == value;
+        }
+    }
+    return msg.method.toLowerCase().includes(filter) || msg.message.toLowerCase().includes(filter);
+}
+
 
 document.addEventListener('DOMContentLoaded', () => {
     const app = new GrpcViewer();

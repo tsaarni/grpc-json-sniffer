@@ -3,27 +3,47 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log/slog"
+	"os"
 	"strconv"
 
+	sniffer "github.com/tsaarni/grpc-json-sniffer"
 	"github.com/tsaarni/grpc-json-sniffer/example/demo"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-func main() {
-	action := flag.String("action", "", "Action to perform: greetings or countdown")
-	param := flag.String("param", "", "Name for greetings or start value for countdown")
-	address := flag.String("address", "localhost:50051", "The address to connect to")
-	flag.Parse()
+const (
+	grpcServerAddress = "localhost:50051"
+	httpViewerAddress = "localhost:8080"
+)
 
-	if *action == "" || *param == "" {
+func main() {
+	if len(os.Args) < 3 {
 		slog.Error("Invalid arguments")
-		flag.Usage()
+		fmt.Println("Usage: client <action> <param>")
+		fmt.Println("Actions:")
+		fmt.Println("  greetings <name>")
+		fmt.Println("  countdown <start>")
+		os.Exit(1)
+	}
+
+	action := os.Args[1]
+	param := os.Args[2]
+
+	interceptor, err := sniffer.NewGrpcJsonInterceptor(
+		sniffer.WithFilename("grpc_client_capture.json"), sniffer.WithAddr("localhost:8081"))
+	if err != nil {
+		slog.Error("failed to create capture interceptor", "error", err)
 		return
 	}
 
-	conn, err := grpc.NewClient(*address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(grpcServerAddress,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithUnaryInterceptor(interceptor.UnaryClientInterceptor()),
+		grpc.WithStreamInterceptor(interceptor.StreamClientInterceptor()),
+	)
 	if err != nil {
 		slog.Error("Failed to connect", "error", err)
 		return
@@ -32,17 +52,17 @@ func main() {
 
 	client := demo.NewDemoClient(conn)
 
-	switch *action {
+	switch action {
 	case "greetings":
-		slog.Info("Sending Hello request", "name", *param)
-		resp, err := client.Hello(context.Background(), &demo.HelloRequest{Name: *param})
+		slog.Info("Sending Hello request", "name", param)
+		resp, err := client.Hello(context.Background(), &demo.HelloRequest{Name: param})
 		if err != nil {
 			slog.Error("Failed to greet", "error", err)
 			return
 		}
 		slog.Info("Received response", "message", resp.GetMessage())
 	case "countdown":
-		start, err := strconv.Atoi(*param)
+		start, err := strconv.Atoi(param)
 		if err != nil {
 			slog.Error("Invalid start value", "error", err)
 			return
