@@ -56,7 +56,6 @@ a {
   grid-template-columns: auto auto 1fr;
   cursor: pointer;
   white-space: nowrap;
-  overflow-y: auto;
   flex-grow: 1;
   min-height: 100%;
   align-content: start;
