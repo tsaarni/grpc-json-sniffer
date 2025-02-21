@@ -1,4 +1,4 @@
-package grpc_json_sniffer
+package sniffer
 
 import (
 	"context"

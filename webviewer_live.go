@@ -1,12 +1,12 @@
 //go:build live_public
 
-package grpc_json_sniffer
+package sniffer
 
 import (
 	"io/fs"
 	"os"
 )
 
-func GetStaticFiles() fs.FS {
+func getStaticFiles() fs.FS {
 	return os.DirFS("./public")
 }

@@ -53,7 +53,9 @@ func main() {
 	}
 
 	interceptor, err := sniffer.NewGrpcJsonInterceptor(
-		sniffer.WithFilename("grpc_server_capture.json"), sniffer.WithAddr(httpViewerAddress))
+		sniffer.WithFilename("grpc_server_capture.json"),
+		sniffer.WithAddr(httpViewerAddress),
+	)
 	if err != nil {
 		slog.Error("failed to create capture interceptor", "error", err)
 		return

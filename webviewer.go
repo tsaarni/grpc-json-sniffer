@@ -1,4 +1,4 @@
-package grpc_json_sniffer
+package sniffer
 
 import (
 	"bufio"
@@ -25,7 +25,7 @@ func NewGrpcWebViewer(addr string, messages string) *GrpcWebViewer {
 	return &GrpcWebViewer{
 		addr:        addr,
 		messages:    messages,
-		publicFiles: GetStaticFiles(),
+		publicFiles: getStaticFiles(),
 	}
 }
 

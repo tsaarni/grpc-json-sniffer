@@ -82,6 +82,29 @@ interceptor, err := sniffer.NewGrpcJsonInterceptor(
 )
 ```
 
+## Standalone Viewer
+
+The JSON Sniffer can be used to view previously captured messages.
+To install the viewer, run:
+
+```bash
+go install github.com/tsaarni/grpc-json-sniffer/cmd/grpc-capture-viewer
+```
+
+Then start the viewer with the path to the JSON file:
+
+```console
+$ grpc-capture-viewer grpc_server_capture.json
+Starting gRPC JSON Sniffer on localhost:8080
+```
+
+The server bind `localhost:8080` by default.
+The address can be changed using the `-addr` flag:
+
+```console
+$ grpc-capture-viewer -addr <address> <filename>
+```
+
 ## Developing
 
 The repository includes example gRPC server and client implementations located in the [`example`](example) directory.
