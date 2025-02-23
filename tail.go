@@ -8,14 +8,14 @@ import (
 	"time"
 )
 
-func tailFile(ctx context.Context, file *os.File, messages chan string) {
+func tailFile(ctx context.Context, file *os.File, lines chan string) {
 	reader := bufio.NewReader(file)
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		default:
-			line, err := readline(reader)
+			line, err := reader.ReadString('\n')
 			if err != nil {
 				if err == io.EOF {
 					time.Sleep(100 * time.Millisecond)
@@ -24,18 +24,10 @@ func tailFile(ctx context.Context, file *os.File, messages chan string) {
 				return
 			}
 			select {
-			case messages <- line:
+			case lines <- line:
 			case <-ctx.Done():
 				return
 			}
 		}
 	}
-}
-
-func readline(reader *bufio.Reader) (string, error) {
-	line, err := reader.ReadString('\n')
-	if err != nil {
-		return "", err
-	}
-	return line, nil
 }
