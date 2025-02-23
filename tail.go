@@ -23,11 +23,7 @@ func tailFile(ctx context.Context, file *os.File, lines chan string) {
 				}
 				return
 			}
-			select {
-			case lines <- line:
-			case <-ctx.Done():
-				return
-			}
+			lines <- line
 		}
 	}
 }

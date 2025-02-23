@@ -1,6 +1,8 @@
 package grpc_json_sniffer
 
 import (
+	"context"
+	"fmt"
 	"io"
 	"io/fs"
 	"mime"
@@ -57,25 +59,35 @@ func (v *GrpcWebViewer) messagesHandler(w http.ResponseWriter, r *http.Request) 
 
 	messagesFile, err := os.OpenFile(v.messages, os.O_RDONLY, 0)
 	if err != nil {
-		http.Error(w, "File not found", http.StatusNotFound)
+		sock.Close(websocket.StatusInternalError, "Capture messages file not found")
 		return
 	}
 	defer messagesFile.Close()
 
-	ctx := r.Context()
+	tailCtx, cancelTail := context.WithCancel(context.Background())
+	defer cancelTail()
 	messages := make(chan string)
-	go tailFile(ctx, messagesFile, messages)
+	go tailFile(tailCtx, messagesFile, messages)
+
+	// The web client will never write anything to the socket.
+	// If read returns, the client has disconnected.
+	go func() {
+		_, _, _ = sock.Reader(r.Context())
+		cancelTail()
+	}()
 
 	for {
 		select {
 		case msg, ok := <-messages:
 			if !ok {
+				fmt.Println("Messages channel closed")
 				return
 			}
-			if err := sock.Write(ctx, websocket.MessageText, []byte(msg)); err != nil {
+			if err := sock.Write(tailCtx, websocket.MessageText, []byte(msg)); err != nil {
 				return
 			}
-		case <-ctx.Done():
+		case <-tailCtx.Done():
+			sock.Close(websocket.StatusInternalError, "Cannot read captured messages from file")
 			return
 		}
 	}
