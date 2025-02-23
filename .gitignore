@@ -26,3 +26,6 @@ go.work.sum
 
 grpc_server_capture.json
 grpc_client_capture.json
+grpc-json-sniffer-viewer
+server
+client

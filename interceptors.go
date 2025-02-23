@@ -1,4 +1,4 @@
-package sniffer
+package grpc_json_sniffer
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"sync"
+	"sync/atomic"
 	"time"
 
 	"google.golang.org/grpc"
@@ -15,21 +15,14 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// GrpcJsonInterceptor intercepts gRPC calls and logs the request and response messages as JSON to a file and serves a web viewer.
+// GrpcJsonInterceptor intercepts gRPC calls and logs the request and response messages as JSON to a file.
+// It also serves a web viewer for the logged messages.
 type GrpcJsonInterceptor struct {
 	output    *os.File
-	mutex     sync.Mutex
-	messageId int // Unique identifier for each message.
-	streamId  int // Unique identifier for each stream.
+	messageId int64 // Unique identifier for each message.
+	streamId  int64 // Unique identifier for each stream.
 	marshaler protojson.MarshalOptions
 	viewer    *GrpcWebViewer
-}
-
-type serverStreamWrapper struct {
-	grpc.ServerStream
-	info        *grpc.StreamServerInfo
-	interceptor *GrpcJsonInterceptor
-	streamId    int
 }
 
 type grpcJsonInterceptorOptions struct {
@@ -38,8 +31,8 @@ type grpcJsonInterceptorOptions struct {
 }
 
 type capturedMessage struct {
-	MessageId  int             `json:"message_id"`
-	StreamId   *int            `json:"stream_id,omitempty"`
+	MessageId  int64           `json:"message_id"`
+	StreamId   *int64          `json:"stream_id,omitempty"`
 	Direction  direction       `json:"direction"`
 	Time       string          `json:"time"`
 	FullMethod string          `json:"method"`
@@ -57,8 +50,12 @@ const (
 )
 
 // NewGrpcJsonInterceptor creates a new GrpcJsonInterceptor instance.
-// It can be configured using the environment variables GRPC_JSON_SNIFFER_FILE and GRPC_JSON_SNIFFER_ADDR,
-// or through options:
+//
+// It can be configured using the environment variables:
+// - GRPC_JSON_SNIFFER_FILE: enables JSON logging to a specified file.
+// - GRPC_JSON_SNIFFER_ADDR: enables serving the web viewer at a specified address.
+//
+// Alternatively, it can be configured through options:
 // - WithFilename: enables JSON logging to a specified file.
 // - WithAddr: enables serving the web viewer at a specified address.
 func NewGrpcJsonInterceptor(options ...func(*grpcJsonInterceptorOptions)) (*GrpcJsonInterceptor, error) {
@@ -88,9 +85,7 @@ func NewGrpcJsonInterceptor(options ...func(*grpcJsonInterceptorOptions)) (*Grpc
 	}
 
 	return &GrpcJsonInterceptor{
-		output:    f,
-		messageId: 1,
-		streamId:  1,
+		output: f,
 		marshaler: protojson.MarshalOptions{
 			EmitUnpopulated: true,
 		},
@@ -99,6 +94,10 @@ func NewGrpcJsonInterceptor(options ...func(*grpcJsonInterceptorOptions)) (*Grpc
 }
 
 // WithFilename sets the filename for the GrpcJsonInterceptor.
+//
+// Example:
+//
+//	interceptor, err := NewGrpcJsonInterceptor(WithFilename("grpc_messages.json"))
 func WithFilename(filename string) func(*grpcJsonInterceptorOptions) {
 	return func(o *grpcJsonInterceptorOptions) {
 		o.Filename = filename
@@ -106,13 +105,17 @@ func WithFilename(filename string) func(*grpcJsonInterceptorOptions) {
 }
 
 // WithAddr sets the address for the GrpcJsonInterceptor.
+//
+// Example:
+//
+//	interceptor, err := NewGrpcJsonInterceptor(WithAddr("localhost:8080"))
 func WithAddr(addr string) func(*grpcJsonInterceptorOptions) {
 	return func(o *grpcJsonInterceptorOptions) {
 		o.Addr = addr
 	}
 }
 
-func (i *GrpcJsonInterceptor) writeMessage(ctx context.Context, direction direction, fullMethod string, payload any, handlerError error, streamId *int) {
+func (i *GrpcJsonInterceptor) writeMessage(ctx context.Context, direction direction, fullMethod string, payload any, handlerError error, streamId *int64) {
 	msg, ok := payload.(proto.Message)
 	if !ok {
 		return
@@ -139,11 +142,10 @@ func (i *GrpcJsonInterceptor) writeMessage(ctx context.Context, direction direct
 		peerAddr = "unknown"
 	}
 
-	i.mutex.Lock()
-	defer i.mutex.Unlock()
+	messageId := atomic.AddInt64(&i.messageId, 1)
 
 	m := capturedMessage{
-		MessageId:  i.messageId,
+		MessageId:  messageId,
 		Direction:  direction,
 		Time:       time.Now().Format(time.RFC3339Nano),
 		FullMethod: fullMethod,
@@ -163,10 +165,6 @@ func (i *GrpcJsonInterceptor) writeMessage(ctx context.Context, direction direct
 		return
 	}
 	_, _ = i.output.WriteString("\n")
-
-	i.messageId++
-
-	return
 }
 
 // UnaryServerInterceptor returns a gRPC unary server interceptor that logs the request and response messages as JSON.
@@ -196,30 +194,17 @@ func (i *GrpcJsonInterceptor) StreamServerInterceptor() func(srv interface{}, st
 	}
 
 	return func(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-		i.mutex.Lock()
+		streamId := atomic.AddInt64(&i.streamId, 1)
+
 		wrapper := &serverStreamWrapper{
 			ServerStream: stream,
 			info:         info,
 			interceptor:  i,
-			streamId:     i.streamId,
+			streamId:     streamId,
 		}
-		i.streamId++
-		i.mutex.Unlock()
 
 		return handler(srv, wrapper)
 	}
-}
-
-func (ssw *serverStreamWrapper) RecvMsg(m interface{}) error {
-	err := ssw.ServerStream.RecvMsg(m)
-	ssw.interceptor.writeMessage(ssw.Context(), directionReceive, ssw.info.FullMethod, m, err, &ssw.streamId)
-	return err
-}
-
-func (ssw *serverStreamWrapper) SendMsg(m interface{}) error {
-	err := ssw.ServerStream.SendMsg(m)
-	ssw.interceptor.writeMessage(ssw.Context(), directionSend, ssw.info.FullMethod, m, err, &ssw.streamId)
-	return err
 }
 
 // UnaryClientInterceptor returns a gRPC unary client interceptor that logs the request and response messages as JSON.
@@ -249,10 +234,7 @@ func (i *GrpcJsonInterceptor) StreamClientInterceptor() grpc.StreamClientInterce
 	}
 
 	return func(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string, streamer grpc.Streamer, opts ...grpc.CallOption) (grpc.ClientStream, error) {
-		i.mutex.Lock()
-		streamId := i.streamId
-		i.streamId++
-		i.mutex.Unlock()
+		streamId := atomic.AddInt64(&i.streamId, 1)
 
 		clientStream, err := streamer(ctx, desc, cc, method, opts...)
 		if err != nil {
@@ -268,23 +250,4 @@ func (i *GrpcJsonInterceptor) StreamClientInterceptor() grpc.StreamClientInterce
 
 		return wrappedStream, nil
 	}
-}
-
-type clientStreamWrapper struct {
-	grpc.ClientStream
-	interceptor *GrpcJsonInterceptor
-	method      string
-	streamId    int
-}
-
-func (csw *clientStreamWrapper) SendMsg(m interface{}) error {
-	err := csw.ClientStream.SendMsg(m)
-	csw.interceptor.writeMessage(csw.Context(), directionSend, csw.method, m, err, &csw.streamId)
-	return err
-}
-
-func (csw *clientStreamWrapper) RecvMsg(m interface{}) error {
-	err := csw.ClientStream.RecvMsg(m)
-	csw.interceptor.writeMessage(csw.Context(), directionReceive, csw.method, m, err, &csw.streamId)
-	return err
 }

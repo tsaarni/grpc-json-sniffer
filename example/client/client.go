@@ -8,7 +8,7 @@ import (
 	"os"
 	"strconv"
 
-	sniffer "github.com/tsaarni/grpc-json-sniffer"
+	grpc_json_sniffer "github.com/tsaarni/grpc-json-sniffer"
 	"github.com/tsaarni/grpc-json-sniffer/example/demo"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -32,8 +32,8 @@ func main() {
 	action := os.Args[1]
 	param := os.Args[2]
 
-	interceptor, err := sniffer.NewGrpcJsonInterceptor(
-		sniffer.WithFilename("grpc_client_capture.json"), sniffer.WithAddr("localhost:8081"))
+	interceptor, err := grpc_json_sniffer.NewGrpcJsonInterceptor(
+		grpc_json_sniffer.WithFilename("grpc_client_capture.json"), grpc_json_sniffer.WithAddr("localhost:8081"))
 	if err != nil {
 		slog.Error("failed to create capture interceptor", "error", err)
 		return

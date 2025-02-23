@@ -49,10 +49,10 @@ See [`example/server/server.go`](example/server/server.go) for full example.
 Similar to the server, the JSON Sniffer can be integrated into a gRPC client.
 
 ```go
-import sniffer "github.com/tsaarni/grpc-json-sniffer"
+import "github.com/tsaarni/grpc-json-sniffer"
 
 func setupGrpcClient() {
-	interceptor, err := sniffer.NewGrpcJsonInterceptor()
+	interceptor, err := grpc_json_sniffer.NewGrpcJsonInterceptor()
 	// ...
 	conn, err := grpc.NewClient(grpcServerAddress,
 		// ...
@@ -76,9 +76,9 @@ Its functionality is enabled by following environment variables:
 Alternatively, the interceptor can be configured programmatically using options:
 
 ```go
-interceptor, err := sniffer.NewGrpcJsonInterceptor(
-    sniffer.WithFilename("/tmp/grpc_capture.json"),
-    sniffer.WithAddr("localhost:8080"),
+interceptor, err := grpc_json_sniffer.NewGrpcJsonInterceptor(
+    grpc_json_sniffer.WithFilename("/tmp/grpc_capture.json"),
+    grpc_json_sniffer.WithAddr("localhost:8080"),
 )
 ```
 
@@ -88,21 +88,21 @@ The JSON Sniffer can be used to view previously captured messages.
 To install the viewer, run:
 
 ```bash
-go install github.com/tsaarni/grpc-json-sniffer/cmd/grpc-capture-viewer
+go install github.com/tsaarni/grpc-json-sniffer/cmd/grpc-json-sniffer-viewer
 ```
 
 Then start the viewer with the path to the JSON file:
 
 ```console
-$ grpc-capture-viewer grpc_server_capture.json
-Starting gRPC JSON Sniffer on localhost:8080
+$ grpc-json-sniffer-viewer grpc_server_capture.json
+Starting gRPC JSON sniffer viewer on localhost:8080
 ```
 
 The server bind `localhost:8080` by default.
 The address can be changed using the `-addr` flag:
 
 ```console
-$ grpc-capture-viewer -addr <address> <filename>
+$ grpc-json-sniffer-viewer -addr <address> <filename>
 ```
 
 ## Developing
@@ -115,6 +115,7 @@ To start the gRPC server with the JSON interceptor, run:
 go run -tags live_public github.com/tsaarni/grpc-json-sniffer/example/server
 ```
 
+The messages are written to the `grpc_server_capture.json` file in the current directory.
 Access the captured messages by visiting [http://localhost:8080](http://localhost:8080).
 
 The `live_public` tag is used to enable the web server that serves static files from the `public` directory, for development purposes.
@@ -133,4 +134,17 @@ Send streaming countdown request:
 go run -tags live_public github.com/tsaarni/grpc-json-sniffer/example/client countdown 6000
 ```
 
+The client writes messages to the `grpc_client_capture.json` file in the current directory.
 While the client is running the client message viewer can be accessed at [http://localhost:8081](http://localhost:8081).
+To view messages after the client has finished, use the standalone viewer:
+
+```bash
+go run github.com/tsaarni/grpc-json-sniffer/cmd/grpc-json-sniffer-viewer -addr localhost:8081 grpc_client_capture.json
+```
+
+To quickly test that nothing major broke run
+
+```bash
+make
+make lint
+```

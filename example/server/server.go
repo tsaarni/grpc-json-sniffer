@@ -7,7 +7,7 @@ import (
 	"net"
 	"time"
 
-	sniffer "github.com/tsaarni/grpc-json-sniffer"
+	grpc_json_sniffer "github.com/tsaarni/grpc-json-sniffer"
 	"github.com/tsaarni/grpc-json-sniffer/example/demo"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/peer"
@@ -52,9 +52,9 @@ func main() {
 		return
 	}
 
-	interceptor, err := sniffer.NewGrpcJsonInterceptor(
-		sniffer.WithFilename("grpc_server_capture.json"),
-		sniffer.WithAddr(httpViewerAddress),
+	interceptor, err := grpc_json_sniffer.NewGrpcJsonInterceptor(
+		grpc_json_sniffer.WithFilename("grpc_server_capture.json"),
+		grpc_json_sniffer.WithAddr(httpViewerAddress),
 	)
 	if err != nil {
 		slog.Error("failed to create capture interceptor", "error", err)

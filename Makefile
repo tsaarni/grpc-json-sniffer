@@ -1,7 +1,15 @@
 
 .PHONY: lint-go generate tools
 
-lint-go:
+build:
+	go build -o grpc-json-sniffer-viewer cmd/grpc-json-sniffer-viewer/viewer.go
+	go build -o server example/server/server.go
+	go build -o client example/client/client.go
+
+clean:
+	rm -f grpc-json-sniffer-viewer server client
+
+lint:
 	go run github.com/golangci/golangci-lint/cmd/golangci-lint@v1.62.2 run
 
 # Regenerate the proto files.

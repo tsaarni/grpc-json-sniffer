@@ -1,6 +1,6 @@
 //go:build !live_public
 
-package sniffer
+package grpc_json_sniffer
 
 import (
 	"embed"
