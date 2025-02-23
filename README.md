@@ -16,11 +16,11 @@ To integrate the JSON Sniffer into your gRPC server, import the package and crea
 Then add the interceptor to your server options:
 
 ```go
-import sniffer "github.com/tsaarni/grpc-json-sniffer"
+import "github.com/tsaarni/grpc-json-sniffer"
 
 func setupGrpcServer() {
     // Create the interceptor. By default, logging is disabled.
-    interceptor, err := sniffer.NewGrpcJsonInterceptor()
+    interceptor, err := grpc_json_sniffer.NewGrpcJsonInterceptor()
     if err != nil {
         // Handle error.
     }
