@@ -50,6 +50,10 @@ class GrpcViewer {
                 item.classList.add("send");
             }
 
+            if (msg.error) {
+                item.classList.add("error");
+            }
+
             item.addEventListener("click", () => {
                 this.selectedMessageId = msg.message_id;
                 this.messagesListContainer.querySelectorAll(".message-row-content").forEach((el) => el.classList.remove("selected"));
@@ -83,7 +87,9 @@ class GrpcViewer {
         }
         if ("error" in msg) {
             details.querySelector('#message-details-error').classList.remove("hidden");
-            details.querySelector('#message-details-error-value').appendChild(this.createFilterLink('error', msg.error));
+            const error = this.createFilterLink('error', msg.error)
+            error.classList.add("error");
+            details.querySelector('#message-details-error-value').appendChild(error);
         }
 
         this.detailsContent.innerHTML = '';

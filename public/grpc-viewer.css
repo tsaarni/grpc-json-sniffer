@@ -1,5 +1,7 @@
 :root {
   --background-color: #f8f8f8;
+  --foreground-color: #101010;
+  --foreground-error-color: #ff0000;
   --border-color: #c0c0c0;
   --button-color: #40a040;
   --recv-color: #c0ffc0;
@@ -17,6 +19,7 @@ body {
   height: 100vh;
   overflow: hidden;
   background-color: var(--background-color);
+  color: var(--foreground-color);
 }
 
 a {
@@ -87,6 +90,10 @@ a {
 
 .message-row-content.send {
   background-color: var(--send-color);
+}
+
+.error {
+  color: var(--foreground-error-color);
 }
 
 #message-list-panel input[type="text"] {
