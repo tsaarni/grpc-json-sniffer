@@ -3,7 +3,7 @@ module github.com/tsaarni/grpc-json-sniffer
 go 1.23.4
 
 require (
-	github.com/coder/websocket v1.8.12
+	github.com/coder/websocket v1.8.13
 	google.golang.org/grpc v1.71.1
 	google.golang.org/protobuf v1.36.6
 )
