@@ -16,7 +16,10 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.24"
+          go-version: "stable"
 
       - name: Build
-        run: go build ./example/...
+        run: |
+          go build -o grpc-json-sniffer-viewer cmd/grpc-json-sniffer-viewer/viewer.go
+          go build -o server example/server/server.go
+          go build -o client example/client/client.go
