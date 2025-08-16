@@ -48,7 +48,7 @@ func main() {
 		slog.Error("Failed to connect", "error", err)
 		return
 	}
-	defer conn.Close()
+	defer conn.Close() //nolint:errcheck
 
 	client := demo.NewDemoClient(conn)
 

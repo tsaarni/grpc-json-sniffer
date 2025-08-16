@@ -59,10 +59,10 @@ func (v *GrpcWebViewer) messagesHandler(w http.ResponseWriter, r *http.Request) 
 
 	messagesFile, err := os.OpenFile(v.messages, os.O_RDONLY, 0)
 	if err != nil {
-		sock.Close(websocket.StatusInternalError, "Capture messages file not found")
+		sock.Close(websocket.StatusInternalError, "Capture messages file not found") //nolint:errcheck
 		return
 	}
-	defer messagesFile.Close()
+	defer messagesFile.Close() //nolint:errcheck
 
 	tailCtx, cancelTail := context.WithCancel(context.Background())
 	defer cancelTail()
@@ -87,7 +87,7 @@ func (v *GrpcWebViewer) messagesHandler(w http.ResponseWriter, r *http.Request) 
 				return
 			}
 		case <-tailCtx.Done():
-			sock.Close(websocket.StatusInternalError, "Cannot read captured messages from file")
+			sock.Close(websocket.StatusInternalError, "Cannot read captured messages from file") //nolint:errcheck
 			return
 		}
 	}
@@ -104,7 +104,7 @@ func (v *GrpcWebViewer) filesHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "File not found", http.StatusNotFound)
 		return
 	}
-	defer file.Close()
+	defer file.Close() //nolint:errcheck
 
 	ext := filepath.Ext(relativePath)
 	contentType := mime.TypeByExtension(ext)

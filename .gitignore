@@ -23,9 +23,3 @@ go.work.sum
 
 # env file
 .env
-
-grpc_server_capture.json
-grpc_client_capture.json
-grpc-json-sniffer-viewer
-server
-client
