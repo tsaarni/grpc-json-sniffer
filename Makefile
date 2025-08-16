@@ -1,6 +1,8 @@
 
 .PHONY: lint-go generate tools
 
+all: build lint
+
 build:
 	go build -o grpc-json-sniffer-viewer cmd/grpc-json-sniffer-viewer/viewer.go
 	go build -o server example/server/server.go
@@ -10,7 +12,7 @@ clean:
 	rm -f grpc-json-sniffer-viewer server client
 
 lint:
-	go run github.com/golangci/golangci-lint/cmd/golangci-lint@v1.62.2 run
+	go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.4.0 run
 
 # Regenerate the proto files.
 generate:
@@ -18,5 +20,9 @@ generate:
 
 # Install tools required for protobuf code generation.
 tools:
-	go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.5
+	# https://github.com/protocolbuffers/protobuf-go
+	go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.7
 	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.5.1
+
+update-modules:
+	go get -u -t ./... && go mod tidy
