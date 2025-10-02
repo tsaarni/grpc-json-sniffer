@@ -4,7 +4,7 @@ go 1.23.4
 
 require (
 	github.com/coder/websocket v1.8.14
-	google.golang.org/grpc v1.75.0
+	google.golang.org/grpc v1.75.1
 	google.golang.org/protobuf v1.36.9
 )
 
