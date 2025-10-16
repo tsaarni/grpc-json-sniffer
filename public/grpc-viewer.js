@@ -16,6 +16,9 @@ class GrpcViewer {
         this.messageDetails = document.getElementById('message-details');
         this.detailsContent = document.getElementById('details-content');
 
+        // Timer to throttle message list updates while incoming messages arrive from the server or when the filter changes.
+        this.renderTimer = null;
+
         this.initializeEventListeners();
         this.initializeResizer();
         this.initializeWebSocket();
@@ -33,9 +36,9 @@ class GrpcViewer {
         const filterQuery = this.filterInput.value.trim().toLowerCase();
         list.innerHTML = "";
 
-        this.messages.forEach((msg, index) => {
+        for (const msg of this.messages) {
             if (!matchesFilter(msg, filterQuery)) {
-                return;
+                continue;
             }
 
             const item = this.messageListTemplate.cloneNode(true);
@@ -56,7 +59,9 @@ class GrpcViewer {
 
             item.addEventListener("click", () => {
                 this.selectedMessageId = msg.message_id;
-                this.messagesListContainer.querySelectorAll(".message-row-content").forEach((el) => el.classList.remove("selected"));
+                for (const el of this.messagesListContainer.querySelectorAll(".message-row-content")) {
+                    el.classList.remove("selected");
+                }
                 item.classList.add("selected");
                 this.renderMessageDetails(msg);
             });
@@ -66,7 +71,7 @@ class GrpcViewer {
             if (msg.message_id === this.selectedMessageId) {
                 item.classList.add("selected");
             }
-        });
+        }
     }
 
     renderMessageDetails(msg) {
@@ -116,7 +121,7 @@ class GrpcViewer {
 
     initializeEventListeners() {
         this.filterInput.addEventListener("input", () => {
-            this.renderMessageList();
+            this.delayedRenderMessageList();
         });
 
         this.clearButton.addEventListener("click", () => {
@@ -135,12 +140,8 @@ class GrpcViewer {
         const wsHost = window.location.host;
         const wsUrl = `ws://${wsHost}/messages`;
         this.socketClient = new WebSocketClient(wsUrl, (msg) => {
-            if (msg.message_id == 1) {
-                this.messages = [msg]
-            } else {
-                this.messages.push(msg);
-            }
-            this.renderMessageList();
+            this.messages.push(msg);
+            this.delayedRenderMessageList();
         });
     }
 
@@ -188,6 +189,15 @@ class GrpcViewer {
         const filterString = `${key}: ${value}`;
         this.filterInput.value = filterString;
         this.renderMessageList();
+    }
+
+    delayedRenderMessageList() {
+        if (this.renderTimer == null) {
+            this.renderTimer = setTimeout(() => {
+                this.renderTimer = null;
+                this.renderMessageList();
+            }, 250);
+        }
     }
 }
 
