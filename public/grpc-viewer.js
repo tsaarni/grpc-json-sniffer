@@ -19,7 +19,6 @@ class GrpcViewer {
         // Timer to throttle message list updates while incoming messages arrive from the server or when the filter changes.
         this.renderTimer = null;
 
-
         this.initializeEventListeners();
         this.initializeResizer();
         this.initializeWebSocket();
@@ -143,10 +142,6 @@ class GrpcViewer {
         this.socketClient = new WebSocketClient(wsUrl, (msg) => {
             this.messages.push(msg);
             this.delayedRenderMessageList();
-                this.renderTimer = setTimeout(() => {
-                    this.renderTimer = null;
-                }, 250);
-            }
         });
     }
 
@@ -226,15 +221,32 @@ function stripNamespace(method) {
 
 function matchesFilter(msg, filter) {
     if (!filter) return true;
-    if (filter.includes(":")) {
-        const colonIndex = filter.indexOf(":");
-        const key = filter.substring(0, colonIndex).trim().toLowerCase();
-        const value = filter.substring(colonIndex + 1).trim().toLowerCase();
-        if (key in msg) {
-            return String(msg[key]).toLowerCase() == value;
+
+    const orParts = filter.split("&&").map(p => p.trim()).filter(p => p.length > 0);
+
+    // Every part must match for the whole filter to match.
+    return orParts.every(part => {
+        if (part.includes(":")) {
+            const colonIndex = part.indexOf(":");
+            const key = part.substring(0, colonIndex).trim().toLowerCase();
+
+            if (key in msg) {
+                // If value is prefixed with ~, do substring match instead of exact match.
+                const value = part.substring(colonIndex + 1).trim()
+                if (value.startsWith("~")) {
+                    const substringValue = value.substring(1).trim().toLowerCase();
+                    return String(msg[key]).toLowerCase().includes(substringValue);
+                } else {
+                    const exactValue = value.trim().toLowerCase();
+                    return String(msg[key]).toLowerCase() === exactValue;
+                }
+            }
         }
-    }
-    return msg.method.toLowerCase().includes(filter) || msg.message.toLowerCase().includes(filter);
+
+        // Fallback: substring match against method and message.
+        const lower = part.toLowerCase();
+        return msg.method.toLowerCase().includes(lower) || msg.message.toLowerCase().includes(lower);
+    });
 }
 
 
