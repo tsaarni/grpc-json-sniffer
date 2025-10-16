@@ -19,6 +19,7 @@ class GrpcViewer {
         // Timer to throttle message list updates while incoming messages arrive from the server or when the filter changes.
         this.renderTimer = null;
 
+
         this.initializeEventListeners();
         this.initializeResizer();
         this.initializeWebSocket();
@@ -142,6 +143,10 @@ class GrpcViewer {
         this.socketClient = new WebSocketClient(wsUrl, (msg) => {
             this.messages.push(msg);
             this.delayedRenderMessageList();
+                this.renderTimer = setTimeout(() => {
+                    this.renderTimer = null;
+                }, 250);
+            }
         });
     }
 
