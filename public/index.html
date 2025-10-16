@@ -14,8 +14,17 @@
 
         <!-- Message List panel on the left -->
         <div id="message-list-panel">
-            <div>
-                <input id="message-list-filter-input" type="text" placeholder="Filter by method or type name" />
+            <input id="message-list-filter-input" type="text" placeholder="Filter by method or type name" />
+
+            <!-- Filter help popup -->
+            <div id="filter-help-popup">
+                <strong>Filter Query Syntax</strong>
+                <ul>
+                    <li><b>Substring match:</b> <code>Foo</code> matches any method or message containing "Foo"</li>
+                    <li><b>Key-value filter:</b> <code>method: Foo</code> matches messages with method exactly "Foo"</li>
+                    <li><b>Substring key-value:</b> <code>method: ~Foo</code> matches methods containing "Foo"</li>
+                    <li><b>Multiple conditions:</b> <code>method: Foo && direction: recv</code> (all conditions must match)</li>
+                </ul>
             </div>
 
             <button id="message-list-clear-button">Clear Messages</button>
