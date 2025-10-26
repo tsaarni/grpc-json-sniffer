@@ -1,4 +1,4 @@
-class WebSocketClient {
+export class WebSocketClient {
     constructor(url, onMessage) {
         this.url = url;
         this.onMessage = onMessage;
@@ -21,7 +21,7 @@ class WebSocketClient {
             if (event.wasClean) {
                 console.log(`[close] Connection closed cleanly, code=${event.code} reason=${event.reason}`);
             } else {
-                console.log('[close] Connection died');
+                console.log("[close] Connection died");
             }
         };
 

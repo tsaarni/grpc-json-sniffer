@@ -1,21 +1,22 @@
-class GrpcViewer {
+import { WebSocketClient } from "./websocket-client.js";
+
+export class GrpcViewer {
     constructor() {
-        this.target = document.getElementById('grpc-viewer');
         this.messages = [];
 
         // Templates
-        this.messageListTemplate = document.getElementById('message-list-template').content.firstElementChild;
-        this.messageDetailsTemplate = document.getElementById('message-details-template').content.firstElementChild;
+        this.messageListTemplate = document.getElementById("message-list-template").content.firstElementChild;
+        this.messageDetailsTemplate = document.getElementById("message-details-template").content.firstElementChild;
 
         // Elements
-        this.filterInput = document.getElementById('message-list-filter-input');
-        this.clearButton = document.getElementById('message-list-clear-button');
-        this.messagesListContainer = document.getElementById('messages-list-container');
-        this.messageListPanel = document.getElementById('message-list-panel');
-        this.resizer = document.getElementById('resizer');
-        this.messageDetails = document.getElementById('message-details');
-        this.detailsContent = document.getElementById('details-content');
-        this.timezoneCheckbox = document.getElementById('timezone');
+        this.filterInput = document.getElementById("message-list-filter-input");
+        this.clearButton = document.getElementById("message-list-clear-button");
+        this.messagesListContainer = document.getElementById("messages-list-container");
+        this.messageListPanel = document.getElementById("message-list-panel");
+        this.resizer = document.getElementById("resizer");
+        this.messageDetails = document.getElementById("message-details");
+        this.detailsContent = document.getElementById("details-content");
+        this.timezoneCheckbox = document.getElementById("timezone");
 
         // Timer to throttle message list updates while incoming messages arrive from the server or when the filter changes.
         this.renderTimer = null;
@@ -46,9 +47,9 @@ class GrpcViewer {
 
             const item = this.messageListTemplate.cloneNode(true);
 
-            item.querySelector('.message-row-message-id').textContent = msg.message_id;
-            item.querySelector('.message-row-timestamp').textContent = formatTimestamp(msg.time, this.timeZone);
-            item.querySelector('.message-row-method-and-message').textContent = `${stripNamespace(msg.method)} (${stripNamespace(msg.message)})`;
+            item.querySelector(".message-row-message-id").textContent = msg.message_id;
+            item.querySelector(".message-row-timestamp").textContent = formatTimestamp(msg.time, this.timeZone);
+            item.querySelector(".message-row-method-and-message").textContent = `${stripNamespace(msg.method)} (${stripNamespace(msg.message)})`;
 
             if (msg.direction === "recv") {
                 item.classList.add("recv");
@@ -80,32 +81,32 @@ class GrpcViewer {
     renderMessageDetails(msg) {
         const details = this.messageDetailsTemplate.cloneNode(true);
 
-        details.querySelector('#message-details-message-id-value').textContent = msg.message_id;
-        details.querySelector('#message-details-timestamp-value').textContent = formatTimestamp(msg.time, this.timeZone);
-        details.querySelector('#message-details-method-value').appendChild(this.createFilterLink("method", msg.method));
-        details.querySelector('#message-details-message-value').appendChild(this.createFilterLink("message", msg.message));
-        details.querySelector('#message-details-direction-value').appendChild(this.createFilterLink("direction", msg.direction));
-        details.querySelector('#message-details-peer-address-value').appendChild(this.createFilterLink("peer_address", msg.peer_address));
-        details.querySelector('#message-details-payload-value').textContent = JSON.stringify(msg.content, null, 2);
+        details.querySelector("#message-details-message-id-value").textContent = msg.message_id;
+        details.querySelector("#message-details-timestamp-value").textContent = formatTimestamp(msg.time, this.timeZone);
+        details.querySelector("#message-details-method-value").appendChild(this.createFilterLink("method", msg.method));
+        details.querySelector("#message-details-message-value").appendChild(this.createFilterLink("message", msg.message));
+        details.querySelector("#message-details-direction-value").appendChild(this.createFilterLink("direction", msg.direction));
+        details.querySelector("#message-details-peer-address-value").appendChild(this.createFilterLink("peer_address", msg.peer_address));
+        details.querySelector("#message-details-payload-value").textContent = JSON.stringify(msg.content, null, 2);
 
         // Optional fields.
         if ("stream_id" in msg) {
-            details.querySelector('#message-details-stream-id').classList.remove("hidden");
-            details.querySelector('#message-details-stream-id-value').appendChild(this.createFilterLink('stream_id', msg.stream_id));
+            details.querySelector("#message-details-stream-id").classList.remove("hidden");
+            details.querySelector("#message-details-stream-id-value").appendChild(this.createFilterLink("stream_id", msg.stream_id));
         }
         if ("error" in msg) {
-            details.querySelector('#message-details-error').classList.remove("hidden");
-            const error = this.createFilterLink('error', msg.error)
+            details.querySelector("#message-details-error").classList.remove("hidden");
+            const error = this.createFilterLink("error", msg.error);
             error.classList.add("error");
-            details.querySelector('#message-details-error-value').appendChild(error);
+            details.querySelector("#message-details-error-value").appendChild(error);
         }
 
-        this.detailsContent.innerHTML = '';
+        this.detailsContent.innerHTML = "";
         this.detailsContent.appendChild(details);
     }
 
     createFilterLink(key, value) {
-        const link = document.createElement('a');
+        const link = document.createElement("a");
         link.href = "#";
         link.textContent = value;
         link.addEventListener("click", (event) => {
@@ -144,7 +145,7 @@ class GrpcViewer {
                 this.timeZone = "UTC";
                 localStorage.setItem("grpc-viewer-timezone", this.timeZone);
             } else {
-                this.timeZone = undefined
+                this.timeZone = undefined;
                 localStorage.removeItem("grpc-viewer-timezone");
             }
             this.renderMessageList();
@@ -164,7 +165,7 @@ class GrpcViewer {
         let isResizing = false;
         const minWidth = 100;
 
-        this.resizer.addEventListener("mousedown", (e) => {
+        this.resizer.addEventListener("mousedown", () => {
             isResizing = true;
         });
 
@@ -175,7 +176,7 @@ class GrpcViewer {
             this.messageListPanel.style.width = newWidth + "px";
         });
 
-        document.addEventListener("mouseup", (e) => {
+        document.addEventListener("mouseup", () => {
             isResizing = false;
         });
     }
@@ -207,7 +208,7 @@ class GrpcViewer {
     }
 
     delayedRenderMessageList() {
-        if (this.renderTimer == null) {
+        if (this.renderTimer === null) {
             this.renderTimer = setTimeout(() => {
                 this.renderTimer = null;
                 this.renderMessageList();
@@ -250,7 +251,7 @@ function matchesFilter(msg, filter) {
 
             if (key in msg) {
                 // If value is prefixed with ~, do substring match instead of exact match.
-                const value = part.substring(colonIndex + 1).trim()
+                const value = part.substring(colonIndex + 1).trim();
                 if (value.startsWith("~")) {
                     const substringValue = value.substring(1).trim().toLowerCase();
                     return String(msg[key]).toLowerCase().includes(substringValue);
@@ -266,8 +267,3 @@ function matchesFilter(msg, filter) {
         return msg.method.toLowerCase().includes(lower) || msg.message.toLowerCase().includes(lower);
     });
 }
-
-
-document.addEventListener('DOMContentLoaded', () => {
-    const app = new GrpcViewer();
-});
