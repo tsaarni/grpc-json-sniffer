@@ -15,9 +15,12 @@ class GrpcViewer {
         this.resizer = document.getElementById('resizer');
         this.messageDetails = document.getElementById('message-details');
         this.detailsContent = document.getElementById('details-content');
+        this.timezoneCheckbox = document.getElementById('timezone');
 
         // Timer to throttle message list updates while incoming messages arrive from the server or when the filter changes.
         this.renderTimer = null;
+
+        this.timeZone = localStorage.getItem("grpc-viewer-timezone") || undefined;
 
         this.initializeEventListeners();
         this.initializeResizer();
@@ -44,7 +47,7 @@ class GrpcViewer {
             const item = this.messageListTemplate.cloneNode(true);
 
             item.querySelector('.message-row-message-id').textContent = msg.message_id;
-            item.querySelector('.message-row-timestamp').textContent = formatTimestamp(msg.time);
+            item.querySelector('.message-row-timestamp').textContent = formatTimestamp(msg.time, this.timeZone);
             item.querySelector('.message-row-method-and-message').textContent = `${stripNamespace(msg.method)} (${stripNamespace(msg.message)})`;
 
             if (msg.direction === "recv") {
@@ -78,7 +81,7 @@ class GrpcViewer {
         const details = this.messageDetailsTemplate.cloneNode(true);
 
         details.querySelector('#message-details-message-id-value').textContent = msg.message_id;
-        details.querySelector('#message-details-timestamp-value').textContent = formatTimestamp(msg.time);
+        details.querySelector('#message-details-timestamp-value').textContent = formatTimestamp(msg.time, this.timeZone);
         details.querySelector('#message-details-method-value').appendChild(this.createFilterLink("method", msg.method));
         details.querySelector('#message-details-message-value').appendChild(this.createFilterLink("message", msg.message));
         details.querySelector('#message-details-direction-value').appendChild(this.createFilterLink("direction", msg.direction));
@@ -133,6 +136,18 @@ class GrpcViewer {
                 event.preventDefault();
                 this.handleArrowKey(event);
             }
+        });
+
+        this.timezoneCheckbox.checked = this.timeZone === "UTC";
+        this.timezoneCheckbox.addEventListener("change", () => {
+            if (this.timezoneCheckbox.checked) {
+                this.timeZone = "UTC";
+                localStorage.setItem("grpc-viewer-timezone", this.timeZone);
+            } else {
+                this.timeZone = undefined
+                localStorage.removeItem("grpc-viewer-timezone");
+            }
+            this.renderMessageList();
         });
     }
 
@@ -202,13 +217,16 @@ class GrpcViewer {
 }
 
 // Helpers.
-function formatTimestamp(timeStamp) {
+
+
+function formatTimestamp(timeStamp, timeZone) {
     return new Date(timeStamp).toLocaleTimeString(undefined, {
         hour: "2-digit",
         minute: "2-digit",
         second: "2-digit",
         fractionalSecondDigits: 3,
         hour12: false,
+        timeZone: timeZone,
     });
 }
 

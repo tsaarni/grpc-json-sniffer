@@ -29,11 +29,14 @@
 
             <button id="message-list-clear-button">Clear Messages</button>
             <div id="legend">
-                <strong class="legend-header">Legend:</strong>
-                <span class="legend-color-box legend-receive"></span>
+                <strong>Legend:</strong>
+                <span class="legend-item legend-receive"></span>
                 <span>Receive</span>
-                <span class="legend-color-box legend-send"></span>
+                <span class="legend-item legend-send"></span>
                 <span>Send</span>
+                <span class="legend-spacer"></span>
+                <input class="legend-item" type="checkbox" id="timezone" />
+                <label for="timezone">Show time in UTC</label>
             </div>
 
             <!-- Container for the messages list -->
