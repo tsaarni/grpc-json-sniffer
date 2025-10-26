@@ -11,8 +11,14 @@ build:
 clean:
 	rm -f grpc-json-sniffer-viewer server client
 
-lint:
+lint: lint-go lint-js
+
+lint-go:
 	go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.4.0 run
+
+lint-js:
+	npm install
+	npm run lint
 
 # Regenerate the proto files.
 generate:

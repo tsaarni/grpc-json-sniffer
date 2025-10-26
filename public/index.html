@@ -5,8 +5,13 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <link rel="stylesheet" href="grpc-viewer.css" />
-        <script src="websocket-client.js" defer></script>
-        <script src="grpc-viewer.js" defer></script>
+        <script type="module">
+            import { GrpcViewer } from './grpc-viewer.js';
+            document.addEventListener('DOMContentLoaded', () => {
+                // eslint-disable-next-line no-unused-vars
+                const _app = new GrpcViewer();
+            });
+        </script>
         <title>gRPC Viewer</title>
     </head>
 
