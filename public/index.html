@@ -19,17 +19,10 @@
 
         <!-- Message List panel on the left -->
         <div id="message-list-panel">
-            <input id="message-list-filter-input" type="text" placeholder="Filter by method or type name" />
-
-            <!-- Filter help popup -->
-            <div id="filter-help-popup">
-                <strong>Filter Query Syntax</strong>
-                <ul>
-                    <li><b>Substring match:</b> <code>Foo</code> matches any method or message containing "Foo"</li>
-                    <li><b>Key-value filter:</b> <code>method: Foo</code> matches messages with method exactly "Foo"</li>
-                    <li><b>Substring key-value:</b> <code>method: ~Foo</code> matches methods containing "Foo"</li>
-                    <li><b>Multiple conditions:</b> <code>method: Foo && direction: recv</code> (all conditions must match)</li>
-                </ul>
+            <div id="filter-input-container">
+                <input id="message-list-filter-input" type="text" placeholder="Filter using CEL expression (e.g., method.contains('Foo'))" />
+                <button id="filter-clear-button">×</button>
+                <div id="filter-error-tooltip" class="tooltip hidden"></div>
             </div>
 
             <button id="message-list-clear-button">Clear Messages</button>
@@ -40,8 +33,9 @@
                 <span class="legend-item legend-send"></span>
                 <span>Send</span>
                 <span class="legend-spacer"></span>
+                <a href="#" id="filter-help-link">Filter Help</a>
                 <input class="legend-item" type="checkbox" id="timezone" />
-                <label for="timezone">Show time in UTC</label>
+                <label for="timezone">UTC</label>
             </div>
 
             <!-- Container for the messages list -->
@@ -58,6 +52,52 @@
             <div id="details-content">Select a message to view details</div>
         </div>
 
+        <!-- Filter help popup -->
+        <div id="filter-help-popup" class="hidden">
+
+            <button id="filter-help-close-button">×</button>
+            <strong>Filter Query Syntax (CEL - Common Expression Language)</strong>
+
+            <p>Available Fields:</p>
+            <ul>
+                <li><code>message_id</code> (int) - Sequential message identifier</li>
+                <li><code>stream_id</code> (int) - Stream identifier for the message</li>
+                <li><code>direction</code> (string) - Either "send" or "recv"</li>
+                <li><code>time</code> (string) - Timestamp in ISO 8601 format</li>
+                <li><code>method</code> (string) - gRPC method name (e.g., "/demo.Demo/Countdown")</li>
+                <li><code>message</code> (string) - Message type name (e.g., "demo.CountdownReply")</li>
+                <li><code>peer_address</code> (string) - Remote peer address</li>
+                <li><code>content</code> (map) - The message payload itself</li>
+                <li><code>error</code> (string, optional) - Error message if present</li>
+            </ul>
+
+            <p>Operators:</p>
+            <ul>
+                <li><code>==</code>, <code>!=</code>, <code>&lt;</code>, <code>&gt;</code>, <code>&lt;=</code>, <code>&gt;=</code></li>
+                <li><code>&amp;&amp;</code> (and), <code>||</code> (or), <code>!</code> (not)</li>
+                <li><code>in</code> - e.g., <code>"Countdown" in method</code></li>
+            </ul>
+
+            <p>String Methods:</p>
+            <ul>
+                <li><code>.contains(substring)</code> - Check if string contains substring</li>
+                <li><code>.startsWith(prefix)</code> - Check if string starts with prefix</li>
+                <li><code>.endsWith(suffix)</code> - Check if string ends with suffix</li>
+                <li><code>.matches(regex)</code> - Check if string matches regex pattern</li>
+            </ul>
+
+            <p>Examples:</p>
+            <ul>
+                <li><code>method.contains('Countdown')</code> - Methods containing "Countdown"</li>
+                <li><code>direction == 'recv'</code> - Only received messages</li>
+                <li><code>stream_id == 1</code> - Messages from stream 1</li>
+                <li><code>content.value &gt; 5</code> - Content field value greater than 5</li>
+                <li><code>method.startsWith('/demo') &amp;&amp; direction == 'send'</code> - Combined conditions</li>
+                <li><code>message.matches('.*Reply')</code> - Messages ending with "Reply"</li>
+            </ul>
+
+            See <a href="https://github.com/marcbachmann/cel-js" target="_blank">cel-js documentation</a> for more details.
+        </div>
 
         <!-- Templates -->
 

@@ -2,6 +2,7 @@
 
 gRPC JSON Sniffer is a Go module designed to capture and visualize gRPC messages in real-time.
 It intercepts gRPC calls using `grpc.StreamServerInterceptor` and `grpc.UnaryServerInterceptor` or `grpc.StreamClientInterceptor` and `grpc.UnaryClientInterceptor`, logs the calls to a JSON file, and provides a web-based interface for viewing and analyzing the captured messages.
+Captured messages can be filtered using CEL (Common Expression Language) queries.
 
 For more information about interceptors, see [grpc-go documentation](https://github.com/grpc/grpc-go/blob/master/examples/features/interceptor/README.md).
 
@@ -108,3 +109,7 @@ $ grpc-json-sniffer-viewer -addr <address> <filename>
 ## Contributing
 
 Please refer to [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Credits
+
+* This project uses [cel-js](https://github.com/marcbachmann/cel-js) by Marc Bachmann for CEL (Common Expression Language) parsing and evaluation, licensed under MIT.
