@@ -1,4 +1,5 @@
 import { WebSocketClient } from "./websocket-client.js";
+import { Environment } from "./cel.min.js";
 
 export class GrpcViewer {
     constructor() {
@@ -10,6 +11,11 @@ export class GrpcViewer {
 
         // Elements
         this.filterInput = document.getElementById("message-list-filter-input");
+        this.filterInputClearButton = document.getElementById("filter-clear-button");
+        this.filterErrorTooltip = document.getElementById("filter-error-tooltip");
+        this.filterHelpLink = document.getElementById("filter-help-link");
+        this.filterHelpPopup = document.getElementById("filter-help-popup");
+        this.filterHelpCloseButton = document.getElementById("filter-help-close-button");
         this.clearButton = document.getElementById("message-list-clear-button");
         this.messagesListContainer = document.getElementById("messages-list-container");
         this.messageListPanel = document.getElementById("message-list-panel");
@@ -28,23 +34,64 @@ export class GrpcViewer {
         this.initializeWebSocket();
 
         this.selectedMessageId = null;
+
+        // Initialize CEL environment with type-safe variable declarations
+        this.celEnv = new Environment()
+            .registerVariable("message_id", "dyn")
+            .registerVariable("stream_id", "dyn")
+            .registerVariable("direction", "string")
+            .registerVariable("time", "string")
+            .registerVariable("method", "string")
+            .registerVariable("message", "string")
+            .registerVariable("peer_address", "string")
+            .registerVariable("content", "dyn")
+            .registerVariable("error", "string");
     }
 
     getFilteredMessages() {
-        const filterQuery = this.filterInput.value.trim().toLowerCase();
-        return this.messages.filter(msg => matchesFilter(msg, filterQuery));
+        const filterQuery = this.filterInput.value.trim();
+        if (!filterQuery) {
+            this.filterInput.classList.remove("filter-error");
+            this.filterErrorTooltip.classList.add("hidden");
+            this.filterErrorMessage = null;
+            return this.messages;
+        }
+
+        let parsedExpr;
+        try {
+            parsedExpr = this.celEnv.parse(filterQuery);
+
+            const typeCheck = this.celEnv.check(filterQuery);
+            if (!typeCheck.valid) {
+                this.filterInput.classList.add("filter-error");
+                this.filterErrorTooltip.textContent = typeCheck.error.message;
+                return [];
+            }
+            this.filterInput.classList.remove("filter-error");
+            this.filterErrorTooltip.classList.add("hidden");
+        } catch (error) {
+            this.filterInput.classList.add("filter-error");
+            this.filterErrorTooltip.textContent = error.message;
+            return [];
+        }
+
+        return this.messages.filter(msg => {
+            try {
+                const result = parsedExpr(msg);
+                return Boolean(result);
+            } catch (error) {
+                console.error("CEL evaluation error:", error.message);
+                return false;
+            }
+        });
     }
 
     renderMessageList() {
         const list = this.messagesListContainer;
-        const filterQuery = this.filterInput.value.trim().toLowerCase();
+        const filteredMessages = this.getFilteredMessages();
         list.innerHTML = "";
 
-        for (const msg of this.messages) {
-            if (!matchesFilter(msg, filterQuery)) {
-                continue;
-            }
-
+        for (const msg of filteredMessages) {
             const item = this.messageListTemplate.cloneNode(true);
 
             item.querySelector(".message-row-message-id").textContent = msg.message_id;
@@ -128,6 +175,11 @@ export class GrpcViewer {
             this.delayedRenderMessageList();
         });
 
+        this.filterInputClearButton.addEventListener("click", () => {
+            this.filterInput.value = "";
+            this.delayedRenderMessageList();
+        });
+
         this.clearButton.addEventListener("click", () => {
             this.clearMessages();
         });
@@ -148,7 +200,25 @@ export class GrpcViewer {
                 this.timeZone = undefined;
                 localStorage.removeItem("grpc-viewer-timezone");
             }
-            this.renderMessageList();
+            this.delayedRenderMessageList();
+        });
+
+        this.filterHelpLink.addEventListener("click", () => {
+            this.filterHelpPopup.classList.toggle("hidden");
+        });
+
+        this.filterHelpCloseButton.addEventListener("click", () => {
+            this.filterHelpPopup.classList.add("hidden");
+        });
+
+        this.filterInput.addEventListener("mouseenter", () => {
+            if (this.filterInput.classList.contains("filter-error")) {
+                this.filterErrorTooltip.classList.remove("hidden");
+            }
+        });
+
+        this.filterInput.addEventListener("mouseleave", () => {
+            this.filterErrorTooltip.classList.add("hidden");
         });
     }
 
@@ -202,8 +272,17 @@ export class GrpcViewer {
     }
 
     applyFilter(key, value) {
-        const filterString = `${key}: ${value}`;
-        this.filterInput.value = filterString;
+        let celExpression;
+
+        if (typeof value === "string") {
+            // Escape quotes in the value and create a string equality expression.
+            const escapedValue = value.replaceAll("\\", String.raw`\\`).replaceAll("\"", String.raw`\"`);
+            celExpression = `${key} == "${escapedValue}"`;
+        } else if (typeof value === "number") {
+            celExpression = `${key} == ${value}`;
+        }
+
+        this.filterInput.value = celExpression;
         this.renderMessageList();
     }
 
@@ -218,7 +297,6 @@ export class GrpcViewer {
 }
 
 // Helpers.
-
 
 function formatTimestamp(timeStamp, timeZone) {
     return new Date(timeStamp).toLocaleTimeString(undefined, {
@@ -236,34 +314,4 @@ function stripNamespace(method) {
     const lastPart = parts1[parts1.length - 1];
     const parts2 = lastPart.split(".");
     return parts2[parts2.length - 1];
-}
-
-function matchesFilter(msg, filter) {
-    if (!filter) return true;
-
-    const orParts = filter.split("&&").map(p => p.trim()).filter(p => p.length > 0);
-
-    // Every part must match for the whole filter to match.
-    return orParts.every(part => {
-        if (part.includes(":")) {
-            const colonIndex = part.indexOf(":");
-            const key = part.substring(0, colonIndex).trim().toLowerCase();
-
-            if (key in msg) {
-                // If value is prefixed with ~, do substring match instead of exact match.
-                const value = part.substring(colonIndex + 1).trim();
-                if (value.startsWith("~")) {
-                    const substringValue = value.substring(1).trim().toLowerCase();
-                    return String(msg[key]).toLowerCase().includes(substringValue);
-                } else {
-                    const exactValue = value.trim().toLowerCase();
-                    return String(msg[key]).toLowerCase() === exactValue;
-                }
-            }
-        }
-
-        // Fallback: substring match against method and message.
-        const lower = part.toLowerCase();
-        return msg.method.toLowerCase().includes(lower) || msg.message.toLowerCase().includes(lower);
-    });
 }

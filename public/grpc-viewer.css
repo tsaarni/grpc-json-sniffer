@@ -96,10 +96,26 @@ a {
   color: var(--foreground-error-color);
 }
 
+#filter-input-container {
+  display: flex;
+  position: relative;
+}
+
+#filter-clear-button {
+  background: none;
+  font-size: 1.2em;
+  border: 1px solid var(--border-color);
+}
+
 #message-list-panel input[type="text"] {
   margin: var(--padding);
   padding: 5px;
   width: calc(100% - 2 * var(--padding) - 15px);
+  position: relative;
+}
+
+#message-list-panel input[type="text"].filter-error {
+  color: var(--foreground-error-color);
 }
 
 #message-list-panel button {
@@ -166,18 +182,40 @@ a {
   border-radius: 5px;
 }
 
+#filter-help-link {
+  margin-right: 1em;
+}
+
 #filter-help-popup {
   position: absolute;
   background: var(--background-color);
   border: 1px solid var(--border-color);
   padding: var(--padding);
-  width: 400px;
-  top: 40px;
-  right: 40px;
-  display: none;
+  width: fit-content;
+  min-width: 400px;
+  bottom: 10px;
+  right: 20px;
 }
 
-#message-list-filter-input:hover + #filter-help-popup,
-#filter-help-popup:hover {
-  display: block;
+button#filter-help-close-button {
+  float: right;
+  font-size: 1.2em;
+  border: none;
+  background: none;
+  cursor: pointer;
+  margin: 0;
+}
+
+#filter-error-tooltip {
+  position: absolute;
+  background-color: var(--foreground-color);
+  color: var(--background-color);
+  left: var(--padding);
+  right: var(--padding);
+  top: 100%;
+  padding: 5px;
+  z-index: 1000;
+  white-space: pre-wrap;
+  font-family: monospace;
+  font-size: 0.9em;
 }

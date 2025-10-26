@@ -20,6 +20,11 @@ lint-js:
 	npm install
 	npm run lint
 
+update-js:
+	npm install
+	npm update
+	npm run prepare:cel
+
 # Regenerate the proto files.
 generate:
 	protoc --go_out=. --go-grpc_out=. --go_opt=paths=source_relative --go-grpc_opt=paths=source_relative example/demo/demo.proto
