@@ -1,19 +1,21 @@
-import js from "@eslint/js";
-import globals from "globals";
-import { defineConfig, globalIgnores } from "eslint/config";
+import globals from 'globals';
+import pluginJs from '@eslint/js';
+import { defineConfig, globalIgnores } from 'eslint/config';
 
 export default defineConfig([
+  globalIgnores(['public/*.min.js']),
   {
-    files: ["**/*.{js,mjs,cjs}"],
-    plugins: { js },
-    extends: ["js/recommended"],
-    languageOptions: { globals: globals.browser },
+    languageOptions: {
+      globals: globals.browser,
+    },
     rules: {
-      "no-unused-vars": "error",
-      "semi": ["error", "always" ],
-      "quotes": ["error", "double"],
-      "eqeqeq": ["error", "always"],
+      eqeqeq: 'error',
+      curly: 'error',
+      'no-unused-vars': 'error',
+      strict: ['error', 'global'],
+      quotes: ['error', 'single'],
+      semi: ['error', 'always'],
     },
   },
-  globalIgnores(["public/*.min.js"])
+  pluginJs.configs.recommended,
 ]);

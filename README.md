@@ -110,6 +110,6 @@ $ grpc-json-sniffer-viewer -addr <address> <filename>
 
 Please refer to [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## Credits
+## Acknowledgements
 
-* This project uses [cel-js](https://github.com/marcbachmann/cel-js) by Marc Bachmann for CEL (Common Expression Language) parsing and evaluation, licensed under MIT.
+* This project uses [cel-js](https://github.com/marcbachmann/cel-js) by Marc Bachmann for filtering with CEL (Common Expression Language), licensed under MIT.
