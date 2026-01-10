@@ -25,7 +25,7 @@ type GrpcJsonInterceptor struct {
 	viewer    *GrpcWebViewer
 }
 
-type grpcJsonInterceptorOptions struct {
+type GrpcJsonInterceptorOptions struct {
 	Filename string
 	Addr     string
 }
