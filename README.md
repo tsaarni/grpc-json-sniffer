@@ -83,6 +83,10 @@ interceptor, err := grpc_json_sniffer.NewGrpcJsonInterceptor(
 )
 ```
 
+When using option functions, they take precedence over environment variables.
+Passing an empty string to `WithFilename("")` disables logging entirely (the interceptor becomes a no-op).
+Passing an empty string to `WithAddr("")` disables the web viewer, but file logging continues if a filename is configured.
+
 ## Standalone Viewer
 
 The JSON Sniffer can be used to view previously captured messages.
@@ -104,6 +108,12 @@ The address can be changed using the `-addr` flag:
 
 ```console
 $ grpc-json-sniffer-viewer -addr <address> <filename>
+```
+
+Alternative, you can run the viewer without installing it:
+
+```bash
+ go run github.com/tsaarni/grpc-json-sniffer/cmd/grpc-json-sniffer-viewer@latest <filename>
 ```
 
 ## Contributing

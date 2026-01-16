@@ -58,6 +58,9 @@ const (
 // Alternatively, it can be configured through options:
 // - WithFilename: enables JSON logging to a specified file.
 // - WithAddr: enables serving the web viewer at a specified address.
+//
+// Note: If option functions (WithFilename or WithAddr) are provided, they take precedence
+// and override the corresponding environment variables.
 func NewGrpcJsonInterceptor(options ...func(*grpcJsonInterceptorOptions)) (*GrpcJsonInterceptor, error) {
 	opts := grpcJsonInterceptorOptions{
 		Filename: os.Getenv("GRPC_JSON_SNIFFER_FILE"),
@@ -95,6 +98,8 @@ func NewGrpcJsonInterceptor(options ...func(*grpcJsonInterceptorOptions)) (*Grpc
 
 // WithFilename sets the filename for the GrpcJsonInterceptor.
 //
+// If an empty string is provided, logging is disabled and the interceptor becomes a no-op.
+//
 // Example:
 //
 //	interceptor, err := NewGrpcJsonInterceptor(WithFilename("grpc_messages.json"))
@@ -105,6 +110,9 @@ func WithFilename(filename string) func(*grpcJsonInterceptorOptions) {
 }
 
 // WithAddr sets the address for the GrpcJsonInterceptor.
+//
+// If an empty string is provided, the web viewer is disabled.
+// Logging to the file (if a filename is configured) will continue to work, but no web interface will be available.
 //
 // Example:
 //
