@@ -176,15 +176,15 @@ func (i *GrpcJsonInterceptor) writeMessage(ctx context.Context, direction direct
 }
 
 // UnaryServerInterceptor returns a gRPC unary server interceptor that logs the request and response messages as JSON.
-func (i *GrpcJsonInterceptor) UnaryServerInterceptor() func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+func (i *GrpcJsonInterceptor) UnaryServerInterceptor() func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 	// If no output file is provided, return an interceptor that does nothing.
 	if i.output == nil {
-		return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+		return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 			return handler(ctx, req)
 		}
 	}
 
-	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		i.writeMessage(ctx, directionReceive, info.FullMethod, req, nil, nil)
 		resp, err := handler(ctx, req)
 		i.writeMessage(ctx, directionSend, info.FullMethod, req, err, nil)
@@ -193,15 +193,15 @@ func (i *GrpcJsonInterceptor) UnaryServerInterceptor() func(ctx context.Context,
 }
 
 // StreamServerInterceptor returns a gRPC stream server interceptor that logs the request and response messages as JSON.
-func (i *GrpcJsonInterceptor) StreamServerInterceptor() func(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+func (i *GrpcJsonInterceptor) StreamServerInterceptor() func(srv any, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 	// If no output file is provided, return an interceptor that does nothing.
 	if i.output == nil {
-		return func(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+		return func(srv any, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 			return handler(srv, stream)
 		}
 	}
 
-	return func(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+	return func(srv any, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		streamId := atomic.AddInt64(&i.streamId, 1)
 
 		wrapper := &serverStreamWrapper{
@@ -219,12 +219,12 @@ func (i *GrpcJsonInterceptor) StreamServerInterceptor() func(srv interface{}, st
 func (i *GrpcJsonInterceptor) UnaryClientInterceptor() grpc.UnaryClientInterceptor {
 	// If no output file is provided, return an interceptor that does nothing.
 	if i.output == nil {
-		return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+		return func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 			return invoker(ctx, method, req, reply, cc, opts...)
 		}
 	}
 
-	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+	return func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		i.writeMessage(ctx, directionReceive, method, req, nil, nil)
 		err := invoker(ctx, method, req, reply, cc, opts...)
 		i.writeMessage(ctx, directionSend, method, reply, err, nil)
