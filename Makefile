@@ -1,5 +1,4 @@
-
-.PHONY: lint-go generate tools
+.PHONY: lint-go lint-js generate update-js update-modules
 
 all: build lint
 
@@ -14,7 +13,7 @@ clean:
 lint: lint-go lint-js
 
 lint-go:
-	go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.4.0 run
+	go tool -modfile=tools/go.mod golangci-lint run
 
 lint-js:
 	npm install
@@ -27,13 +26,7 @@ update-js:
 
 # Regenerate the proto files.
 generate:
-	protoc --go_out=. --go-grpc_out=. --go_opt=paths=source_relative --go-grpc_opt=paths=source_relative example/demo/demo.proto
-
-# Install tools required for protobuf code generation.
-tools:
-	# https://github.com/protocolbuffers/protobuf-go
-	go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.7
-	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.5.1
+	go tool -modfile=tools/go.mod buf generate
 
 update-modules:
 	go get -u -t ./... && go mod tidy
